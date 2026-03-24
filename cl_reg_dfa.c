@@ -195,6 +195,11 @@ typedef struct alphabet{ //A structure that contains a list of states and the co
 	char symbols[MaxSizeOfAlphabet];
 }alphabet;
 
+struct alphabet myalphabet = {
+	3,
+	{'e','0','1'}
+};
+
 void copy_alphabet(struct alphabet *dest, struct alphabet src){
 	dest->count = src.count;
 	for(int i = 0; i<src.count; i++){
@@ -392,6 +397,49 @@ void print_dfa(struct DFA dfa){
 	
 	printf("Start state: ");
 	printf("%d ",dfa.start_state);
+	printf("\n");
+	
+	printf("-------------------------------------\n");
+	
+}
+
+void print_enfa(struct ENFA enfa){
+
+	printf("-------------------------------------\n");
+
+	printf("Alphabet: ");
+	for(int i = 0;i<enfa.alphabet.count;i++){
+		printf("%c ",enfa.alphabet.symbols[i]);
+	}
+	printf("\n");
+	
+	printf("States: ");
+	for(int i = 0;i<enfa.states.count;i++){
+		printf("%d ",enfa.states.states[i]);
+	}
+	printf("\n");
+	
+	printf("Final States: ");
+	for(int i = 0;i<enfa.final_states.count;i++){
+		printf("%d ",enfa.final_states.states[i]);
+	}
+	printf("\n");
+	
+	printf("Transition Table: \n");
+	for(int i = 0;i<enfa.states.count;i++){
+		for(int j = 0; j<enfa.alphabet.count; j++){	
+			if(enfa.transition_table[i][j].count == 0) printf("E ");
+			for(int k = 0; k<enfa.transition_table[i][j].count; k++){				
+				printf("%d,",enfa.transition_table[i][j].states[k]);
+			}
+			printf(" ");	
+		}
+		printf("\n");
+	}
+	printf("\n");
+	
+	printf("Start state: ");
+	printf("%d ",enfa.start_state);
 	printf("\n");
 	
 	printf("-------------------------------------\n");
@@ -878,7 +926,7 @@ struct DFA convert_to_dfa(struct ENFA e_nfa){
 	//defining final states
 	int res_final_states[num_sets];
 	int res_final_count = 0;
-		//any set that contains atleast 1 final state
+	//any set that contains atleast 1 final state
 	for(int i = 0; i<num_sets; i++){
 		if(i == dead_state_index) continue;
 		struct set_of_states curr_set = result_sets.set[i];
@@ -997,6 +1045,199 @@ char *complete_regex(char *regex){
 	return res_str;
 }
 
+struct ENFA char_to_enfa(struct alphabet alphabet, char ch){
+    /* Diagram:
+      -->(S1) -->a--> ((F1)) 
+    */
+
+    int states[] = {0, 1};
+    
+    // build transition table — all empty except state 0 on ch -> {1}
+    struct set_of_states table[2][alphabet.count];
+    for(int i = 0; i < 2; i++){
+        for(int j = 0; j < alphabet.count; j++){
+            table[i][j].count = 0;  // default empty
+        }
+    }
+    
+    // find which index ch maps to and set that transition
+    for(int j = 0; j < alphabet.count; j++){
+        if(alphabet.symbols[j] == ch){
+            table[0][j].count = 1;
+            table[0][j].states[0] = 1;  // state 0 on ch -> state 1
+            break;
+        }
+    }
+    
+    int finals[] = {1};
+    
+    return make_enfa(
+        2,
+        states,
+        alphabet.count,
+        alphabet.symbols,
+        table,
+        0,   // start state
+        1,
+        finals
+    	);
+}
+
+struct ENFA concat_op(struct alphabet alphabet, struct ENFA exp1, struct ENFA exp2){
+	/* Diagram:
+	   -->[(S1) --NFA1-->(F1)] --ε--> [(S2) --NFA2-->((F2)])
+	*/
+	//defining new states
+	int new_state_count = exp1.states.count + exp2.states.count;
+	int states[new_state_count];
+	for(int i = 0; i<new_state_count; i++) states[i] = i;
+	
+	//defining final states
+	int finals[] = {new_state_count-1};
+	
+	int num_alphabet = alphabet.count;
+	int exp1_count = exp1.states.count;
+
+	//defining transition table
+	struct set_of_states transition_table[new_state_count][alphabet.count];
+	
+	//Copying all transitions from exp1 and exp2 to new table
+	for(int i = 0; i<new_state_count; i++){
+		if(i<exp1_count){ //for all states of exp1, copy as it is
+			for(int j = 0; j<num_alphabet; j++){
+				transition_table[i][j] = exp1.transition_table[i][j];
+			}
+		}
+		else{
+			int exp2_index = i - exp1_count; //the index of all states in exp2 will be offset
+
+			//for all states in exp2, the resultant states in its transition table also need to be offsetted
+			for(int j = 0; j<num_alphabet; j++){ 
+				int curr_count = exp2.transition_table[exp2_index][j].count;
+				transition_table[i][j].count = curr_count;
+				for(int k = 0; k<curr_count; k++){
+					transition_table[i][j].states[k] = exp2.transition_table[exp2_index][j].states[k] + exp1_count;
+				}
+			}
+		}
+	}
+	
+	//adding epsilon transition from exp1 to exp2
+	transition_table[exp1_count-1][0].count = 1;
+	transition_table[exp1_count-1][0].states[0] = exp1_count;
+	
+	return make_enfa(
+		new_state_count,
+		states,
+		alphabet.count,
+		alphabet.symbols,
+		transition_table,
+		0, //start state
+		1,
+		finals
+		);
+}
+
+struct ENFA or_op(struct alphabet alphabet, struct ENFA exp1, struct ENFA exp2){
+	/* Diagram
+	    			  ε            ε
+   			    [(s1)-->(NFA1) --->(f1)]
+  			       /                  \
+			  -->(S)                 ((F))
+  			      \                  /
+      			       ε                 ε
+        		     [(s2)--> (NFA2)-->(f2)]
+	*/
+
+	//defining new states
+	int new_state_count = exp1.states.count + exp2.states.count + 2;
+	int states[new_state_count];
+	for(int i = 0; i<new_state_count; i++) states[i] = i;
+	
+	//defining final states
+	int finals[] = {new_state_count-1};
+	
+	int num_alphabet = alphabet.count;
+	int exp1_count = exp1.states.count;
+	int exp2_offset = exp1_count+1;
+	int new_final_index = new_state_count-1;
+
+	//defining transition table
+	struct set_of_states transition_table[new_state_count][alphabet.count];
+
+	//Copying all transitions from exp1 and exp2 to new table
+	for(int i = 0; i<new_state_count; i++){
+		if(i == 0){
+			//defining epsilon transtions for new start state	
+			transition_table[0][0].count = 2;
+			transition_table[0][0].states[0] = 1;
+			transition_table[0][0].states[1] = exp1_count+1;
+			for(int j = 1; j<num_alphabet; j++){
+				transition_table[0][j].count = 0;
+			}
+		}
+		else if(i>0 && i<=exp1_count){ //for all states of exp1, offset by1
+			int exp1_index = i - 1; //the index of all states in exp1 will be offset by 1
+			int j = 0;
+
+			if(i == exp1_count){
+				//here we can directly add new transtion beacuse final states dont have outgoing Xitions
+				transition_table[i][0].count = 1;
+				transition_table[i][0].states[0] = new_final_index;
+				j = 1;
+			}
+
+			//for all states in exp1, the resultant states in its transition table also need to be offsetted
+			for(; j<num_alphabet; j++){ 
+				int curr_count = exp1.transition_table[exp1_index][j].count;
+				transition_table[i][j].count = curr_count;
+				for(int k = 0; k<curr_count; k++){
+					transition_table[i][j].states[k] = exp1.transition_table[exp1_index][j].states[k] + 1;
+				}
+			}
+		}
+		else if(i>exp1_count && i < new_final_index){
+			int exp2_index = i - exp2_offset; //the index of all states in exp2 will be offset
+			int j = 0;
+
+			if(i == new_final_index-1){
+				transition_table[i][0].count = 1;
+				transition_table[i][0].states[0] = new_final_index;			
+				j = 1;
+			}
+			
+			//for all states in exp2, the resultant states in its transition table also need to be offsetted
+			for(; j<num_alphabet; j++){ 
+				int curr_count = exp2.transition_table[exp2_index][j].count;
+				transition_table[i][j].count = curr_count;
+				for(int k = 0; k<curr_count; k++){
+					transition_table[i][j].states[k] = exp2.transition_table[exp2_index][j].states[k] + exp2_offset;
+				}
+			}
+		}
+		else{
+			//setting all transitions from new final state 
+			for(int j = 0; j<num_alphabet; j++){
+				transition_table[new_final_index][j].count = 0;
+			}
+						
+		}
+	}
+	
+	
+	return make_enfa(
+		new_state_count,
+		states,
+		alphabet.count,
+		alphabet.symbols,
+		transition_table,
+		0, //start state
+		1,
+		finals
+		);
+	
+}
+
 struct ENFA convert_to_enfa(char *regex){
 	int str_len = strlen(regex);
 	
@@ -1009,9 +1250,6 @@ struct ENFA convert_to_enfa(char *regex){
 	}
 	*/
 	
-	char *completed_exp = complete_regex(regex);
-	
-	char *postfix = infix_to_postfix(regex);
 	/*Problem with a direct postfix expression with no dots, while evaluating all operators other that . dont known how far to go till
 		two solutions:
 		=> add brackets for continuous concatinations: 1000 = (1000) so that the subsequent operator can understand what are its limits
@@ -1019,7 +1257,39 @@ struct ENFA convert_to_enfa(char *regex){
 			ex- 10000 ==> 1.0.0.0.0 yay!
 			this turns out to be the only solution because . is important to make e_nfa
 	*/
+
+	char *completed_exp = complete_regex(regex);	
+	char *postfix = infix_to_postfix(completed_exp);
+
+	//struct alphabet regex_alphabet= find_alphabet(regex);
+	struct ENFA enfa_stack[str_len];
+	int top = -1;
+
+	char *ptr = postfix;
+
+	enfa_stack[++top] = char_to_enfa(myalphabet,*ptr);
 	
+	/*
+	while(top != -1){
+		if(*ptr == '*'){
+			struct ENFA temp = kleene_closure_op(myalphabet,enfa[top--]);
+		}
+		else if(*ptr == '+' || *ptr == '|'){
+			struct ENFA temp = or_op(myalphabet,enfa_stack[top--],enfa_stack[top--]);
+		}
+		else if(*ptr == '.'){
+			struct ENFA temp = concat_op(myalphabet,enfa_stack[top--],enfa_stack[top--]);
+		}
+		else{ //This should later be changed to check if the given symbol is in the alphabet
+			struct ENFA temp = char_to_enfa(myalphabet,*ptr);
+		}
+
+		enfa_stack[++top] = temp;
+	}
+	*/
+
+	free(completed_exp);
+	free(postfix);
 	return res_enfa;
 }
 	
@@ -1033,12 +1303,26 @@ int main(){
 	
 	str_ptr = str;	
 	
-	// Consider dfa for if string contains 01
+	//char test[MAXREGEXLEN] = "(0|1)*1";
+	///char *temp = complete_regex(test);
+	//printf("\n%s\n%s\n",temp,infix_to_postfix(temp));
+
+	struct ENFA test1 = char_to_enfa(myalphabet,'0');
+	struct ENFA test2 = char_to_enfa(myalphabet,'1');
 	
-	char test[MAXREGEXLEN] = "1.0";
-	char *temp = complete_regex(test);
-		
-	printf("\n%s\n%s\n",temp,infix_to_postfix(temp));
+	print_enfa(test1);
+	print_enfa(test2);
+	
+	struct ENFA result = or_op(myalphabet,test1,test2);
+	
+	printf("result\n");
+	print_enfa(result);
+	
+	struct DFA result_dfa = convert_to_dfa(result);
+
+	printf("dfa created!\n");
+
+	print_dfa(result_dfa);
 
 	return 0;
 }
@@ -1046,6 +1330,7 @@ int main(){
 /* Bug Tracker(*) / Increasing Efficiency(-) 
  * when adding random names for states, giving seg fault -> somewhere indexing is not being done right 
    => [add the same state names to transition table]
+ * in all char->enfa functions,need to properly assign alphabet for each
  - Mapping of alphabets to their indices [Hashmap]
  - hashmap for storing states
  - 
