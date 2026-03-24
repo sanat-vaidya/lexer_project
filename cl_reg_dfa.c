@@ -909,7 +909,7 @@ struct DFA convert_to_dfa(struct ENFA e_nfa){
 int precedence(char ch){
 	 if(ch == '*') return 3;
 	 else if(ch == '.') return 2;
-	 else if(ch == '+') return 1;
+	 else if(ch == '+' || ch == '|') return 1;
 	 else return -1;
 }
 
@@ -918,7 +918,7 @@ int take_from_stack(){
 }
 
 int is_op(char ch) {
-    return (ch == '+' || ch == '|' || ch == '.' || ch == '(' || ch == ')');
+    return (ch == '*' || ch == '+' || ch == '|' || ch == '.' || ch == '(' || ch == ')');
 }
 
 char *infix_to_postfix(char *in){
@@ -959,12 +959,47 @@ char *infix_to_postfix(char *in){
     }
 
     postfix[i] = '\0';
-    printf("Postfix: %s\n", postfix);
     
     return postfix;
 }
 
+char *complete_regex(char *regex){
+	char *ptr = regex;
+	
+	int len = strlen(regex);	
+	char *res_str = (char *)(malloc(sizeof(char) * (len*2-1)));
+
+	int i = 0;
+
+	char prev = *ptr;
+	res_str[i++] = *ptr;
+	ptr++;
+	
+	
+	while(*ptr){
+		if(isalnum(*ptr) || *ptr == '('){
+			if(prev != '(' && prev != '+' && prev != '.' && prev != '|'){
+				res_str[i++] = '.';
+				res_str[i++] = *ptr;
+			}
+			else res_str[i++] = *ptr;
+		}
+		else{
+			res_str[i++] = *ptr;
+		}
+		
+		prev = *ptr;
+		ptr++;
+	}
+	
+	res_str[i] = '\0';
+	
+	return res_str;
+}
+
 struct ENFA convert_to_enfa(char *regex){
+	int str_len = strlen(regex);
+	
 	struct ENFA res_enfa;
 	
 	/*
@@ -974,10 +1009,16 @@ struct ENFA convert_to_enfa(char *regex){
 	}
 	*/
 	
-	//
+	char *completed_exp = complete_regex(regex);
 	
 	char *postfix = infix_to_postfix(regex);
-	
+	/*Problem with a direct postfix expression with no dots, while evaluating all operators other that . dont known how far to go till
+		two solutions:
+		=> add brackets for continuous concatinations: 1000 = (1000) so that the subsequent operator can understand what are its limits
+		=> add a helper function that completes a regex:
+			ex- 10000 ==> 1.0.0.0.0 yay!
+			this turns out to be the only solution because . is important to make e_nfa
+	*/
 	
 	return res_enfa;
 }
@@ -994,9 +1035,10 @@ int main(){
 	
 	// Consider dfa for if string contains 01
 	
-	char test[MAXREGEXLEN] = "1+0.(1.0)*";
-	
-	printf("\n %s \n",infix_to_postfix(test));
+	char test[MAXREGEXLEN] = "1.0";
+	char *temp = complete_regex(test);
+		
+	printf("\n%s\n%s\n",temp,infix_to_postfix(temp));
 
 	return 0;
 }
@@ -1008,3 +1050,4 @@ int main(){
  - hashmap for storing states
  - 
 */
+
