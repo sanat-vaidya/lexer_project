@@ -197,12 +197,12 @@ typedef struct alphabet{ //A structure that contains a list of states and the co
 
 struct alphabet alphabet1 = {
 	27,
-	{'\0','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'}
+	"\0abcdefghijklmnopqrstuvwxyz"
 };
 
 struct alphabet alphabet2 = {
 	3,
-	{'\0','0','1'}
+	"\01"
 };
 
 void copy_alphabet(struct alphabet *dest, struct alphabet src){
@@ -489,6 +489,7 @@ int run_dfa(DFA dfa, char *str_ptr){
 	while(*str_ptr){
 		int alpha_index = get_index(dfa.alphabet,*str_ptr);
 		if(alpha_index == -1){
+			printf("Char: '%c' NOT inalphabet\n",*str_ptr);
 			printf("\nNOOO :(\n");	
 			return 0;
 		}
@@ -1056,10 +1057,7 @@ char *complete_regex(char *regex){
 }
 
 struct ENFA char_to_enfa(struct alphabet alphabet, char ch){
-    /* Diagram:
-      -->(S1) -->a--> ((F1)) 
-    */
-
+    //defining new states
     int states[] = {0, 1};
     
     // build transition table — all empty except state 0 on ch -> {1}
@@ -1094,9 +1092,6 @@ struct ENFA char_to_enfa(struct alphabet alphabet, char ch){
 }
 
 struct ENFA concat_op(struct alphabet alphabet, struct ENFA exp1, struct ENFA exp2){
-	/* Diagram:
-	   -->[(S1) --NFA1-->(F1)] --ε--> [(S2) --NFA2-->((F2)])
-	*/
 	//defining new states
 	int new_state_count = exp1.states.count + exp2.states.count;
 	int states[new_state_count];
@@ -1149,16 +1144,6 @@ struct ENFA concat_op(struct alphabet alphabet, struct ENFA exp1, struct ENFA ex
 }
 
 struct ENFA or_op(struct alphabet alphabet, struct ENFA exp1, struct ENFA exp2){
-	/* Diagram
-	    			  ε            ε
-   			    [(s1)-->(NFA1) --->(f1)]
-  			       /                  \
-			  -->(S)                 ((F))
-  			      \                  /
-      			       ε                 ε
-        		     [(s2)--> (NFA2)-->(f2)]
-	*/
-
 	//defining new states
 	int new_state_count = exp1.states.count + exp2.states.count + 2;
 	int states[new_state_count];
@@ -1375,13 +1360,33 @@ struct ENFA convert_to_enfa(char *regex){
 	free(postfix);
 	return enfa_stack[top];
 }
+
+int check_in_regex(char *regex,char *str){
+	struct ENFA result_enfa = convert_to_enfa(regex);
 	
-int main(){
+	//printf("result:\n");
+	//print_enfa(result);
+	
+	struct DFA result_dfa = convert_to_dfa(result_enfa);
+
+	//printf("dfa created!\n");
+	//print_dfa(result_dfa);
+
+	struct DFA minimized_dfa = minimize_dfa(result_dfa);
+	
+	//printf("Minimized Dfa:\n");
+	//print_dfa(minimized);
+
+	
+	return run_dfa(minimized_dfa,str);
+}
+	
+int main(int argc, char *argv[]){
 	
 	//Read A string
 	char *str_ptr;
 		
-	char str[1000];
+	char str[1000] = "\0"; //initializing string to empty in case no input is given
 	
 	str_ptr = str;	
 	
@@ -1389,22 +1394,10 @@ int main(){
 	///char *temp = complete_regex(test);
 	//printf("\n%s\n%s\n",temp,infix_to_postfix(temp));
 
-	struct ENFA result = convert_to_enfa("(a+b+c+dd)*");
-	
-	printf("result:\n");
-	print_enfa(result);
-	
-	struct DFA result_dfa = convert_to_dfa(result);
-
-	printf("dfa created!\n");
-	print_dfa(result_dfa);
-
-	struct DFA minimized = minimize_dfa(result_dfa);
-	print_dfa(minimized);
-	
 	scanf("%s",str);
 
-	run_dfa(minimized,str);
+	check_in_regex(argv[1],str);
+
 	return 0;
 }
 
