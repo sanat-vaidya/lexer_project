@@ -160,6 +160,37 @@ void quick_sort(int arr[], int low, int high){
 	}
 }
 
+void swap_c(char *a, char *b){
+	char temp = *a;
+	*a = *b;
+	*b = temp;
+}
+
+int partition_c(char arr[], char low, char high){
+	char pivot = arr[high];
+	
+	int pos_pivot = low-1;
+	
+	for(int j = low; j<high; j++){
+		if(arr[j] < pivot){
+			pos_pivot++;
+			swap_c(&arr[pos_pivot], &arr[j]);
+		}
+	}
+	
+	swap_c(&arr[pos_pivot+1] , &arr[high]);
+	return pos_pivot+1;
+}
+
+void quick_sort_c(char arr[], int low, int high){
+	if(low<high){
+		int pivot = partition_c(arr,low,high);
+		
+		quick_sort_c(arr,low, pivot -1);
+		quick_sort_c(arr, pivot+1, high);
+	}
+}
+
 typedef struct set_of_states{ //A structure that contains a list of states and the count
 	int count;
 	int states[MaxStates];
@@ -1302,9 +1333,34 @@ struct ENFA kleene_closure_op(struct alphabet alphabet, struct ENFA exp1){
 
 }
 
+struct alphabet find_alphabet(char *regex){
+  struct alphabet res_alphabet;
+  res_alphabet.count = 0;
+
+  res_alphabet.symbols[res_alphabet.count++] = '\0';
+  
+  char *ptr = regex;
+  
+  while(*ptr){
+    if(is_op(*ptr) == 0){
+      if(get_index(res_alphabet,*ptr) == -1){
+        res_alphabet.symbols[res_alphabet.count++] = *ptr;
+      } 
+    }
+    
+    ptr++;
+  }
+
+  quick_sort_c(res_alphabet.symbols,0,res_alphabet.count-1);
+
+  return res_alphabet;
+}
+
 struct ENFA convert_to_enfa(char *regex){
 	int str_len = strlen(regex);
 	
+	struct alphabet regex_alphabet= find_alphabet(regex);
+  
 	/*
 	if(is_regex(*regex) == 0){ // check if it is regex at all (probably will need non regex checking lmao)
 		printf("Given string is NOT a regular expression, try again\n");
@@ -1323,34 +1379,33 @@ struct ENFA convert_to_enfa(char *regex){
 	char *completed_exp = complete_regex(regex);	
 	char *postfix = infix_to_postfix(completed_exp);
 
-	//struct alphabet regex_alphabet= find_alphabet(regex);
 	struct ENFA enfa_stack[str_len];
 	int top = -1;
 
 	char *ptr = postfix;
 	
-	struct alphabet myalphabet = alphabet1;
+	//struct alphabet myalphabet = alphabet1;
 
-	enfa_stack[++top] = char_to_enfa(myalphabet,*(ptr++));
+	enfa_stack[++top] = char_to_enfa(regex_alphabet,*(ptr++));
 
 	struct ENFA temp;
 	while(top != -1 && *ptr){
 		if(*ptr == '*'){
 			struct ENFA first = enfa_stack[top--];
-			temp = kleene_closure_op(myalphabet,first);
+			temp = kleene_closure_op(regex_alphabet,first);
 		}
 		else if(*ptr == '+' || *ptr == '|'){
 			struct ENFA second = enfa_stack[top--];
 			struct ENFA first = enfa_stack[top--];
-			temp = or_op(myalphabet,first,second);
+			temp = or_op(regex_alphabet,first,second);
 		}
 		else if(*ptr == '.'){
 			struct ENFA second = enfa_stack[top--];
 			struct ENFA first = enfa_stack[top--];
-			temp = concat_op(myalphabet,first,second);
+			temp = concat_op(regex_alphabet,first,second);
 		}
 		else{ //This should later be changed to check if the given symbol is in the alphabet
-			temp = char_to_enfa(myalphabet,*ptr);
+			temp = char_to_enfa(regex_alphabet,*ptr);
 		}
 		ptr++;
 		enfa_stack[++top] = temp;
@@ -1380,21 +1435,18 @@ int check_in_regex(char *regex,char *str){
 	
 	return run_dfa(minimized_dfa,str);
 }
-	
+
 int main(int argc, char *argv[]){
 	
 	//Read A string
 	char *str_ptr;
-		
+	
 	char str[1000] = "\0"; //initializing string to empty in case no input is given
 	
-	str_ptr = str;	
+	str_ptr = str;
 	
-	//char test[MAXREGEXLEN] = "(0|1)*1";
-	///char *temp = complete_regex(test);
-	//printf("\n%s\n%s\n",temp,infix_to_postfix(temp));
-
 	scanf("%s",str);
+
 
 	check_in_regex(argv[1],str);
 
