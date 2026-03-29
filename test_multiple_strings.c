@@ -912,8 +912,6 @@ struct DFA convert_to_dfa(struct ENFA e_nfa){
 		}
 	}
 	
-	//defining all attributes of the dfa
-
 	//defining start state
 	int start_state = 0;
 
@@ -1446,7 +1444,8 @@ int main(int argc, char *argv[]){
 	str_ptr = str;
 	
   while(scanf("%s",str) != -1){
-	  check_in_regex(argv[1],str);
+    check_in_regex(argv[1],str);
+	  strcpy(str,"\0");
   }
 	
   check_in_regex(argv[1],str);
