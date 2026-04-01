@@ -104,7 +104,7 @@
 	ENFA test_enfa2 = make_enfa(
 		4,
 		enfa_states2,
-		3,
+		4,
 		enfa_alphabet2,
 		table2,
 		0,
@@ -510,7 +510,6 @@ int in_states(int states[],int count,int current_state){
 	return 0;
 }
 
-
 //For now the run dfa will on strings contating 0 and 1
 
 //Takes a dfa and a string as input and runs it to find if string willl be accepted
@@ -546,12 +545,6 @@ int run_dfa(DFA dfa, char *str_ptr){
 	}
 
 }
-
-/*Function to minimize dfa
-	- Given a dfa can it be minimized?
-	- input = dfa (matrix)
-	- output also a dfa (matrix)
-*/
 
 int get_position(struct set_of_states states, int state_value){
 	//gets the corresponding index for the value of a state
@@ -1368,14 +1361,11 @@ struct ENFA convert_to_enfa(char *regex){
 	}
 	*/
 	
-	/*Problem with a direct postfix expression with no dots, while evaluating all operators other that . dont known how far to go till
-		two solutions:
-		=> add brackets for continuous concatinations: 1000 = (1000) so that the subsequent operator can understand what are its limits
+	/*Problem with a direct postfix expression with no dots, while evaluating all operators other that . dont known how far to go till:
 		=> add a helper function that completes a regex:
 			ex- 10000 ==> 1.0.0.0.0 yay!
 			this turns out to be the only solution because . is important to make e_nfa
 	*/
-
 	char *completed_exp = complete_regex(regex);	
 	char *postfix = infix_to_postfix(completed_exp);
 
