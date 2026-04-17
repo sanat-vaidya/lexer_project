@@ -12,7 +12,7 @@ struct ENFA make_enfa(
     int num_final_states,
     int final_states[]
 ){
-    ENFA enfa;
+    struct ENFA enfa;
 
     // copy alphabet
     enfa.alphabet.count = alphabet_size;

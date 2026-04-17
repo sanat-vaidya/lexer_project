@@ -1,4 +1,4 @@
-#ifdef ENFA_H
+#ifndef ENFA_H
 #define ENFA_H
 
 typedef struct ENFA{
