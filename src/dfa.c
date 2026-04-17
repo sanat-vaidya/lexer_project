@@ -1,5 +1,9 @@
 #include "../include/utils.h"
 #include "../include/dfa.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 struct DFA make_dfa(
     int num_states,
@@ -246,7 +250,6 @@ void table_filling_algorithm(struct DFA dfa, int distinguishable_matrix[][dfa.st
 	
 	//run the loop till no new change is made
 	int flag = 1;
-	int pass_count = 0;
 	while(flag == 1){ //run the code till distinguisable matrix has no changes
 		flag = 0;
 		int i =1; //if i was not set to 1 inside this loop, loop wont run a second time.

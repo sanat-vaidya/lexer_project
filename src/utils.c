@@ -1,4 +1,8 @@
 #include "../include/utils.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 //--------sorting codes--------------
 void swap(int *a, int *b){
@@ -38,7 +42,7 @@ void swap_c(char *a, char *b){
 	*b = temp;
 }
 
-int partition_c(char arr[], char low, char high){
+int partition_c(char arr[], int low, int high){
 	char pivot = arr[high];
 	
 	int pos_pivot = low-1;
@@ -137,10 +141,6 @@ int precedence(char ch){
 	 else if(ch == '.') return 2;
 	 else if(ch == '+' || ch == '|') return 1;
 	 else return -1;
-}
-
-int take_from_stack(){
-
 }
 
 int is_op(char ch) {

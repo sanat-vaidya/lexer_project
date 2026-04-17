@@ -2,6 +2,10 @@
 #include "../include/dfa.h"
 #include "../include/enfa.h"
 #include "../include/regex.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 char *complete_regex(char *regex){
 	char *ptr = regex;

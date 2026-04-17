@@ -1,6 +1,10 @@
 #include "../include/utils.h"
 #include "../include/enfa.h"
 #include "../include/dfa.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 struct ENFA make_enfa(
     int num_states,

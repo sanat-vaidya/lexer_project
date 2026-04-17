@@ -22,23 +22,13 @@ typedef struct alphabet{ //A structure that contains a list of states and the co
 	char symbols[MaxSizeOfAlphabet];
 }alphabet;
 
-  //Test alphabets not used
-struct alphabet alphabet1 = {
-	27,
-	"\0abcdefghijklmnopqrstuvwxyz"
-};
-
-struct alphabet alphabet2 = {
-	3,
-	"\01"
-};
 //----------------------------------------------------
 
 void swap(int *a, int *b);
 int partition(int arr[], int low, int high);
 void quick_sort(int arr[], int low, int high);
 void swap_c(char *a, char *b);
-int partition_c(char arr[], char low, char high);
+int partition_c(char arr[], int low, int high);
 void quick_sort_c(char arr[], int low, int high);
 void copy_states(struct set_of_states *dest, int states[], int size);
 void copy_table(int dest[][MaxSizeOfAlphabet], int src[][MaxSizeOfAlphabet], int row_size, int col_size);
@@ -49,7 +39,6 @@ int in_final(struct set_of_states final_states,int current_state);
 int get_position(struct set_of_states states, int state_value);
 int get_index(struct alphabet alphabet, char ch);
 int precedence(char ch);
-int take_from_stack();
 int is_op(char ch);
 char *infix_to_postfix(char *in);
 
