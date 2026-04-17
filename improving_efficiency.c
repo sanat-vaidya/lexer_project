@@ -1426,6 +1426,7 @@ int check_in_regex(char *regex,char *str){
 	return run_dfa(minimized_dfa,str);
 }
 
+/*
 char *dfa_to_regex(struct DFA dfa){
   char res_regex[MAXREGEXLEN];
   int length = 0;
@@ -1436,6 +1437,7 @@ char *dfa_to_regex(struct DFA dfa){
 
   return res_regex;
 }
+*/
 
 int main(int argc, char *argv[]){
 	

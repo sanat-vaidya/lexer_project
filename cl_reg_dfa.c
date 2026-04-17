@@ -112,7 +112,6 @@
 		enfa_finals2
 	);
 
-	struct DFA converted_dfa2 = convert_to_dfa(test_enfa2);
 	print_dfa(converted_dfa2);
 	run_dfa(converted_dfa2, str_ptr);
 ------------------------------------------------------------------------------------
@@ -124,6 +123,7 @@
 
 */
 
+// from
 #define MaxStates 100
 #define MaxSizeOfAlphabet 30
 #define NUMSTATE 5
@@ -166,7 +166,7 @@ void swap_c(char *a, char *b){
 	*b = temp;
 }
 
-int partition_c(char arr[], char low, char high){
+int partition_c(char arr[], int low, int high){
 	char pivot = arr[high];
 	
 	int pos_pivot = low-1;
@@ -242,7 +242,9 @@ void copy_alphabet(struct alphabet *dest, struct alphabet src){
 		dest->symbols[i] = src.symbols[i];
 	}
 }
+//till
 
+//dfa.h
 typedef struct DFA{  //basically a 5 tuple definition of a DFA, alphabet yet to be defined.
 	struct alphabet alphabet;
 	
@@ -255,7 +257,9 @@ typedef struct DFA{  //basically a 5 tuple definition of a DFA, alphabet yet to 
 	struct set_of_states final_states;
 	
 } DFA;
+//dfa.h till
 
+//enfa.h
 typedef struct ENFA{
 	struct alphabet alphabet;
 	
@@ -268,7 +272,9 @@ typedef struct ENFA{
 	
 	struct set_of_states final_states;
 } ENFA;
+//enfa.h till
 
+//enfa.c
 struct ENFA make_enfa(
     int num_states,
     int states[],
@@ -332,7 +338,9 @@ struct ENFA make_enfa(
 
     return enfa;
 }
+//enfa.c till
 
+//dfa.c
 struct DFA make_dfa(
     int num_states,
     int states[],
@@ -438,7 +446,9 @@ void print_dfa(struct DFA dfa){
 	printf("-------------------------------------\n");
 	
 }
+//dfa.c till
 
+//enfa.c
 void print_enfa(struct ENFA enfa){
 
 	printf("-------------------------------------\n");
@@ -481,7 +491,9 @@ void print_enfa(struct ENFA enfa){
 	printf("-------------------------------------\n");
 	
 }
+//enfa.c till
 
+//from
 //Currently this functions returns the corresponding index for a given input symbol
 int get_index(struct alphabet alphabet, char ch){
 	int size = alphabet.count;
@@ -509,9 +521,9 @@ int in_states(int states[],int count,int current_state){
 	
 	return 0;
 }
+//till
 
-//For now the run dfa will on strings contating 0 and 1
-
+//dfa.c
 //Takes a dfa and a string as input and runs it to find if string willl be accepted
 int run_dfa(DFA dfa, char *str_ptr){
 	int currstate = dfa.start_state;
@@ -545,7 +557,9 @@ int run_dfa(DFA dfa, char *str_ptr){
 	}
 
 }
+//dfa.c till
 
+//from
 int get_position(struct set_of_states states, int state_value){
 	//gets the corresponding index for the value of a state
     for(int i = 0; i < states.count; i++){
@@ -553,7 +567,9 @@ int get_position(struct set_of_states states, int state_value){
     }
     return -1;
 }
+//till
 
+//dfa.c
 int is_distinguishable(struct DFA dfa, int num_states, int matrix[][num_states], int pos1, int pos2){
 	
 	/* VERY VERY VERY important to pass num_states because
@@ -734,6 +750,7 @@ struct DFA minimize_dfa(DFA dfa){
 	return res_dfa;
 	
 }
+//dfa.c till
 
 /* Found a way to handle epislion cycles!
 	for each state in an epsilon cycle, all states are identical!!!
@@ -742,6 +759,7 @@ struct DFA minimize_dfa(DFA dfa){
 	turns out this is HORRIBLY inefficient, so just keep a visited array >:(
 */
 
+//enfa.c
 struct set_of_states eclose(struct ENFA e_nfa, int given_state){ //recursive function did not work and hence lets try using a stack
 											   					 // Courtesy abdur hehehe
 	struct set_of_states res_states;
@@ -987,8 +1005,9 @@ struct DFA convert_to_dfa(struct ENFA e_nfa){
 		
 	return res_dfa;
 }
+//enfa.c till
 
-
+//from
 int precedence(char ch){
 	 if(ch == '*') return 3;
 	 else if(ch == '.') return 2;
@@ -1045,7 +1064,9 @@ char *infix_to_postfix(char *in){
     
     return postfix;
 }
+//till
 
+//regex.c
 char *complete_regex(char *regex){
 	char *ptr = regex;
 	
@@ -1425,6 +1446,7 @@ int check_in_regex(char *regex,char *str){
 	
 	return run_dfa(minimized_dfa,str);
 }
+//regex.c till
 
 char *dfa_to_regex(struct DFA dfa){
   char res_regex[MAXREGEXLEN];
