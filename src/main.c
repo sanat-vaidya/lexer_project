@@ -10,16 +10,17 @@
 int main(int argc, char *argv[]){
 	
 	//Read A string
-	char *str_ptr;
-	
 	char str[1000] = "\0"; //initializing string to empty in case no input is given
 	
-	str_ptr = str;
+  struct DFA result_dfa = regex_to_dfa(argv[1]);
+  print_dfa(result_dfa);
+
+  while(scanf("%s",str) != -1){
+    run_dfa(result_dfa,str);
+	  strcpy(str,"\0");
+  }
 	
-	scanf("%s",str);
-
-
-	check_in_regex(argv[1],str);
-
+  run_dfa(result_dfa,str);
+  
 	return 0;
 }

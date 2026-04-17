@@ -9,6 +9,6 @@ struct ENFA kleene_closure_op(struct alphabet alphabet, struct ENFA exp1);
 struct alphabet find_alphabet(char *regex);
 struct ENFA convert_to_enfa(char *regex);
 int check_in_regex(char *regex,char *str);
-
+struct DFA regex_to_dfa(char *regex);
 
 #endif

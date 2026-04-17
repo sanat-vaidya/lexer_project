@@ -386,3 +386,23 @@ int check_in_regex(char *regex,char *str){
 	
 	return run_dfa(minimized_dfa,str);
 }
+
+struct DFA regex_to_dfa(char *regex){
+	struct ENFA result_enfa = convert_to_enfa(regex);
+	
+	//printf("result:\n");
+	//print_enfa(result_enfa);
+	
+	struct DFA result_dfa = convert_to_dfa(result_enfa);
+
+	//printf("dfa created!\n");
+	//print_dfa(result_dfa);
+
+	struct DFA minimized_dfa = minimize_dfa(result_dfa);
+	
+	//printf("Minimized Dfa:\n");
+	//print_dfa(minimized_dfa);
+
+	
+	return minimized_dfa; 
+}
