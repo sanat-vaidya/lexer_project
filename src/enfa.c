@@ -109,6 +109,12 @@ void print_enfa(struct ENFA enfa){
 	
 }
 
+/* Found a way to handle epislion cycles!
+	for each state in an epsilon cycle, all states are identical!!!
+	so we can directly replace them with a new state.
+	
+	turns out this is HORRIBLY inefficient, so just keep a visited array >:(
+*/
 struct set_of_states eclose(struct ENFA e_nfa, int given_state){ //recursive function did not work and hence lets try using a stack
 											   					 // Courtesy abdur hehehe
 	struct set_of_states res_states;
