@@ -24,12 +24,12 @@ struct ENFA make_enfa(
         enfa.alphabet.symbols[i] = alphabet_symbols[i];
     }
 
-    // copy states
-    enfa.states.count = num_states;
+    // copy States 
+    clear_states(&enfa.states);
     for(int i = 0; i < num_states; i++){
-        enfa.states.states[i] = states[i];
+      add_state(&enfa.states, i);
     }
-
+    
     // convert start state value to position
     enfa.start_state = -1;
     for(int i = 0; i < num_states; i++){
@@ -40,7 +40,7 @@ struct ENFA make_enfa(
     enfa.final_states.count = num_final_states;
     for(int i = 0; i < num_final_states; i++){
         for(int j = 0; j < num_states; j++){
-            if(states[j] == final_states[i]) enfa.final_states.states[i] = j;
+            if(states[j] == final_states[i]) add_state(&enfa.final_states, j);
         }
     }
 
@@ -52,19 +52,9 @@ struct ENFA make_enfa(
 
     // copy transition table, converting destination values to positions
     for(int i = 0; i < num_states; i++){
-        for(int j = 0; j < alphabet_size; j++){
-            int count = transition_table[i][j].count;
-            enfa.transition_table[i][j].count = count;
-            for(int k = 0; k < count; k++){
-                int dest_value = transition_table[i][j].states[k];
-                for(int m = 0; m < num_states; m++){
-                    if(states[m] == dest_value){
-                        enfa.transition_table[i][j].states[k] = m;
-                        break;
-                    }
-                }
-            }
-        }
+      for(int j = 0; j < alphabet_size; j++){
+        enfa.transition_table[i][j] = transition_table[i][j];  // direct struct copy
+      }
     }
 
     return enfa;
@@ -80,26 +70,29 @@ void print_enfa(struct ENFA enfa){
 	}
 	printf("\n");
 	
-	printf("States: ");
-	for(int i = 0;i<enfa.states.count;i++){
-		printf("%d ",enfa.states.states[i]);
-	}
+  printf("States: ");
+  int num_states = enfa.states.count;
+  for(int i = 0; i < num_states; i++){
+    if(in_states(&enfa.states, i)) printf("%d ", i);
+  }
 	printf("\n");
 	
 	printf("Final States: ");
-	for(int i = 0;i<enfa.final_states.count;i++){
-		printf("%d ",enfa.final_states.states[i]);
-	}
+  for(int i = 0; i < enfa.states.count; i++){
+    if(in_states(&enfa.final_states, i)) printf("%d ", i);
+  }
 	printf("\n");
 	
 	printf("Transition Table: \n");
 	for(int i = 0;i<enfa.states.count;i++){
 		for(int j = 0; j<enfa.alphabet.count; j++){	
 			if(enfa.transition_table[i][j].count == 0) printf("E ");
-			for(int k = 0; k<enfa.transition_table[i][j].count; k++){				
-				printf("%d,",enfa.transition_table[i][j].states[k]);
-			}
-			printf(" ");	
+			for(int dest = 0; dest < enfa.states.count; dest++){
+        if(in_states(&enfa.transition_table[i][j], dest)){
+          printf("%d,", dest);
+        }
+      }
+      printf(" ");	
 		}
 		printf("\n");
 	}
@@ -125,7 +118,7 @@ struct set_of_states eclose(struct ENFA e_nfa, int given_state){ //recursive fun
 	res_states.count = 0;
 	
 	//add given state to res
-	res_states.states[res_states.count++] = given_state;
+	add_state(&res_states,given_state);
 	
 	//define a stack to add all subsequent E Xitions
 	int stack[e_nfa.states.count];
@@ -138,16 +131,14 @@ struct set_of_states eclose(struct ENFA e_nfa, int given_state){ //recursive fun
 		
 		struct set_of_states temp_set = e_nfa.transition_table[curr_state][0];
 		
-		for(int i = 0; i<temp_set.count; i++){
-			int sub_curr_state = temp_set.states[i];
-			if(in_states(res_states.states, res_states.count, sub_curr_state) == 0){
-				res_states.states[res_states.count++] = sub_curr_state;
-				stack[++top] = sub_curr_state;
-			}
-		}
+		for(int sub_curr_state = 0; sub_curr_state < e_nfa.states.count; sub_curr_state++){
+      if(in_states(&temp_set, sub_curr_state) == 0) continue;
+      if(in_states(&res_states, sub_curr_state) == 0){
+        add_state(&res_states, sub_curr_state);
+        stack[++top] = sub_curr_state;
+      }
+    }
 	}
-	
-	sort_states(&res_states); //it is important to sort this array so that the comparison becomes easier later on :3
 	
 	return res_states;
 }
@@ -157,80 +148,66 @@ struct set_of_states transition_enfa(struct ENFA e_nfa, struct set_of_states tem
 	struct set_of_states res_states;
 	res_states.count = 0;
 	
-	int num_states = temp.count;
-	
-	for(int i = 0; i<num_states; i++){
-		int curr_state = temp.states[i];  // get the actual state position
-		struct set_of_states curr_set_states = e_nfa.transition_table[curr_state][symbol_index];
-		
-		int num_curr_states = curr_set_states.count;
-		for(int j = 0; j<num_curr_states; j++){
-			if(in_states(res_states.states, res_states.count, curr_set_states.states[j]) == 0){
-				res_states.states[res_states.count++] = curr_set_states.states[j];
-			}
-		}
-		
-	}
-	
-	sort_states(&res_states); //it is important to sort this array so that the comparison becomes easier later on :3
+	// correct — iterate over all possible state positions
+  for(int curr_state = 0; curr_state < MaxStates; curr_state++){
+    if(in_states(&temp, curr_state) == 0) continue;  // skip if not in set
+    
+    struct set_of_states curr_set_states = e_nfa.transition_table[curr_state][symbol_index];
+    
+    for(int dest_state = 0; dest_state < MaxStates; dest_state++){
+        if(in_states(&curr_set_states, dest_state) == 1){
+            add_state(&res_states, dest_state);
+        }
+    }
+  }
 	
 	return res_states;
 }
 
-int is_same_set(struct set_of_states a, struct set_of_states b){
-	if(a.count != b.count) return 0;
-	
-	int num_states = a.count;
-	for(int i = 0; i<num_states; i++){
-		if(a.states[i] != b.states[i]) return 0;
-	}
-	
-	return 1;
+int is_same_set(struct set_of_states *a, struct set_of_states *b){
+    return set_equal(a, b);
 }
 
-int in_set(struct set_of_set sets, struct set_of_states temp){
-	int num_sets = sets.count;
-	
-	for(int i = 0; i<num_sets; i++){
-		if(is_same_set(sets.set[i] , temp) == 1) return 1;
-	}
-	
-	return 0;
-}
-
-int in_stack(struct set_of_states stack[], int top, struct set_of_states temp){
-    for(int i = 0; i <= top; i++){
-        if(is_same_set(stack[i], temp)) return 1;
+int in_set(struct set_of_set *sets, struct set_of_states *temp){
+    for(int i = 0; i < sets->count; i++){
+        if(set_equal(&sets->set[i], temp)) return 1;
     }
     return 0;
 }
 
-int get_set_index(struct set_of_set sets, struct set_of_states after_eclose){
-	int num_sets = sets.count;
-	
-	for(int i =0; i<num_sets; i++ ){
-		if(is_same_set(sets.set[i],after_eclose) == 1) return i;
-	}
-	
-	return -1;
+int in_stack(struct set_of_states stack[], int top, struct set_of_states *temp){
+    for(int i = 0; i <= top; i++){
+        if(set_equal(&stack[i], temp)) return 1;
+    }
+    return 0;
+}
+
+int get_set_index(struct set_of_set *sets, struct set_of_states *temp){
+    for(int i = 0; i < sets->count; i++){
+        if(set_equal(&sets->set[i], temp)) return i;
+    }
+    return -1;
 }
 
 struct set_of_states eclose_set(struct ENFA e_nfa, struct set_of_states set){
     struct set_of_states res_states;
     res_states.count = 0;
-
+    
+    int num_states = set.count;
     // take eclose of each state in the set and union the results
-    for(int i = 0; i < set.count; i++){
-        struct set_of_states curr_eclose = eclose(e_nfa, set.states[i]);
+    for(int state = 0; state < num_states; state++){
+      if(in_states(&set, state) == 0) continue;  // skip if not in set
+      printf("break %d\n",state); 
+      struct set_of_states curr_eclose = eclose(e_nfa, state);
+      
+      int num_curr_state = curr_eclose.count;
 
-        for(int j = 0; j < curr_eclose.count; j++){
-            if(in_states(res_states.states, res_states.count, curr_eclose.states[j]) == 0){
-                res_states.states[res_states.count++] = curr_eclose.states[j];
-            }
-        }
+      for(int eclose_state = 0; eclose_state < num_curr_state; eclose_state++){
+          if(in_states(&curr_eclose, eclose_state) == 1){
+            add_state(&res_states, eclose_state);
+          }
+      }
     }
-
-    sort_states(&res_states);  // sort so is_same_set comparison works correctly
 
     return res_states;
 }
@@ -251,7 +228,6 @@ struct DFA convert_to_dfa(struct ENFA e_nfa){
 	//starting with eclose of start state on nfa
 	result_sets.set[result_sets.count++] = eclose(e_nfa,e_nfa.start_state); 
 	
-	
 	//Define a stack of set of states where we also have a list of visited stacks
 	struct set_of_states set_stack[200];
 	int top = -1;
@@ -261,7 +237,7 @@ struct DFA convert_to_dfa(struct ENFA e_nfa){
 	int contains_dead_state = 0;
 	//finding all possible set of states reachable in epsilon nfa
 	while(top != -1){ //till stack is empty
-		struct set_of_states temp = set_stack[top--]; //pop
+    struct set_of_states temp = set_stack[top--]; //pop
 
 		int alphabet_size = e_nfa.alphabet.count;
 		//all possible transitions for the current state
@@ -274,8 +250,8 @@ struct DFA convert_to_dfa(struct ENFA e_nfa){
 		    	continue;
 		    }  
 
-		    if(in_set(result_sets, after_eclose) == 0 &&
-		       in_stack(set_stack, top, after_eclose) == 0){ // if set is not already considered / in stack, add it to record of sets of states
+		    if(in_set(&result_sets, &after_eclose) == 0 &&
+		       in_stack(set_stack, top, &after_eclose) == 0){ // if set is not already considered / in stack, add it to record of sets of states
 		        result_sets.set[result_sets.count++] = after_eclose;
 		        set_stack[++top] = after_eclose;
 		    }
@@ -330,7 +306,7 @@ struct DFA convert_to_dfa(struct ENFA e_nfa){
 			}
 			else{
 				// match it to the respecting index in the dfa and store that value and store in table
-				res_transition_table[i][a-1] = get_set_index(result_sets, after_eclose); 
+				res_transition_table[i][a-1] = get_set_index(&result_sets, &after_eclose);
 			}
 		}
 	}
@@ -342,9 +318,9 @@ struct DFA convert_to_dfa(struct ENFA e_nfa){
 	for(int i = 0; i<num_sets; i++){
 		if(i == dead_state_index) continue;
 		struct set_of_states curr_set = result_sets.set[i];
-		for(int j = 0; j<curr_set.count; j++){
-			if(in_final(e_nfa.final_states, curr_set.states[j]) == 1){
-				res_final_states[res_final_count++] = i;
+		for(int state = 0; state < MaxStates; state++){
+      if(in_states(&curr_set, state) == 1 && in_final(&e_nfa.final_states, state) == 1){
+        res_final_states[res_final_count++] = i;
 				break;
 			}
 		}

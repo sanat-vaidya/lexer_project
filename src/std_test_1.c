@@ -8,21 +8,22 @@
 #include <ctype.h>
 
 int main(int argc, char *argv[]){
-	
-	//Read A string
-	char str[1000] = "(a|b)*(a|b)(a|b)(a|b)(a|b)(a|b)(a|b)(a|b)(a|b)(a|b)(a|b)";
-  //initializing string to empty in case no input is given
-  
-  struct DFA result_dfa = regex_to_dfa(str);
- //print_dfa(result_dfa);
+    struct ENFA result_enfa = convert_to_enfa(argv[1]);
+    struct DFA result_dfa = convert_to_dfa(result_enfa);
+    printf("dfa done\n");
+    
+    print_dfa(result_dfa);
 
-  /*
-  while(scanf("%s",str) != -1){
-    run_dfa(result_dfa,str);
-	  strcpy(str,"\0");
-  }
-  run_dfa(result_dfa,str);
-  
-  */
-	return 0;
+    struct DFA minimized_dfa = minimize_dfa(result_dfa);
+    printf("minimize done\n");
+    
+    print_dfa(minimized_dfa);
+    
+    char str[1000] = "\0";
+
+    while(scanf("%s", str) != -1){
+        run_dfa(minimized_dfa, str);
+    }
+    
+    return 0;
 }

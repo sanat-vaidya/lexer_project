@@ -69,12 +69,13 @@ void quick_sort_c(char arr[], int low, int high){
 //----------------------------------------------------
 
 //copying stuff
-void copy_states(struct set_of_states *dest, int states[], int size){
+
+/*void copy_states(struct set_of_states *dest, int states[], int size){
 	dest->count = size;
 	for(int i = 0; i<size; i++){
 		dest->states[i] = states[i];
 	}
-}
+}*/
 
 void copy_table(int dest[][MaxSizeOfAlphabet], int src[][MaxSizeOfAlphabet], int row_size, int col_size){
 	for(int i = 0; i<row_size; i++){
@@ -92,38 +93,19 @@ void copy_alphabet(struct alphabet *dest, struct alphabet src){
 }
 //----------------------------------------------------
 
-//----Opetations with states, set of states------------------------
-
-int in_states(int states[],int count,int current_state){
-	for(int i = 0;i<count;i++){
-		if(states[i] == current_state) return 1;
-	}
-	
-	return 0;
-}
-
+/*
 void sort_states(struct set_of_states *set){
 	quick_sort(set->states,0,set->count-1);
 }
+*/
 
-//checks if a given state is in the set of final states
-int in_final(struct set_of_states final_states,int current_state){
-	
-	for(int i = 0;i <final_states.count;i++){
-		if(final_states.states[i] == current_state) return 1;
-	}
-	
-	return 0;
-}
-
-int get_position(struct set_of_states states, int state_value){
+/*int get_position(struct set_of_states states, int state_value){
 	//gets the corresponding index for the value of a state
     for(int i = 0; i < states.count; i++){
         if(states.states[i] == state_value) return i;
     }
     return -1;
-}
-
+}*/
 
 int get_index(struct alphabet alphabet, char ch){
   //Currently this functions returns the corresponding index for a given input symbol
@@ -188,7 +170,40 @@ char *infix_to_postfix(char *in){
     
     return postfix;
 }
-//--------------------------------------------------------------------------
 
+// functions on set of states
 
+void clear_states(struct set_of_states *s){
+    s->count = 0;
+    for(int i = 0; i < MaxWord; i++) s->words[i] = 0;
+}
+
+void add_state(struct set_of_states *s, int state){
+    // only increment count if state wasnt already in set
+    if(!in_states(s, state)){
+        s->count++;
+        s->words[state / BitsPerWord] |= (1ULL << (state % BitsPerWord));
+    }
+}
+
+int in_states(struct set_of_states *s, int state){
+    return (s->words[state / BitsPerWord] >> (state % BitsPerWord)) & 1;
+}
+
+int set_equal(struct set_of_states *a, struct set_of_states *b){
+    if(a->count != b->count) return 0;  // early exit
+    for(int i = 0; i < MaxWord; i++){
+        if(a->words[i] != b->words[i]) return 0;
+    }
+    return 1;
+}
+
+//checks if a given state is in the set of final states
+int in_final(struct set_of_states *fs,int state){
+	return (fs->words[state / BitsPerWord] >> (state % BitsPerWord)) & 1;
+}
+
+int set_empty(struct set_of_states *s){
+    return s->count == 0;  // no need to scan words at all now
+}
 

@@ -3,7 +3,7 @@ CFLAGS = -Wall -Iinclude
 
 SRC = src/main.c src/dfa.c src/enfa.c src/regex.c src/utils.c
 OBJ = $(SRC:.c=.o)
-TARGET = automata
+TARGET = abdur.out
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ)

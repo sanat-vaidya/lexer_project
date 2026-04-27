@@ -49,15 +49,14 @@ struct ENFA char_to_enfa(struct alphabet alphabet, char ch){
     struct set_of_states table[2][alphabet.count];
     for(int i = 0; i < 2; i++){
         for(int j = 0; j < alphabet.count; j++){
-            table[i][j].count = 0;  // default empty
+          clear_states(&table[i][j]);  // default empty
         }
     }
     
     // find which index ch maps to and set that transition
     for(int j = 0; j < alphabet.count; j++){
         if(alphabet.symbols[j] == ch){
-            table[0][j].count = 1;
-            table[0][j].states[0] = 1;  // state 0 on ch -> state 1
+            add_state(&table[0][j], 1);  // state 0 on ch -> state 1
             break;
         }
     }
@@ -79,7 +78,8 @@ struct ENFA char_to_enfa(struct alphabet alphabet, char ch){
 struct ENFA concat_op(struct alphabet alphabet, struct ENFA exp1, struct ENFA exp2){
 	//defining new states
 	int new_state_count = exp1.states.count + exp2.states.count;
-	int states[new_state_count];
+
+  int states[new_state_count];
 	for(int i = 0; i<new_state_count; i++) states[i] = i;
 	
 	//defining final states
@@ -103,20 +103,21 @@ struct ENFA concat_op(struct alphabet alphabet, struct ENFA exp1, struct ENFA ex
 
 			//for all states in exp2, the resultant states in its transition table also need to be offsetted
 			for(int j = 0; j<num_alphabet; j++){ 
-				int curr_count = exp2.transition_table[exp2_index][j].count;
-				transition_table[i][j].count = curr_count;
-				for(int k = 0; k<curr_count; k++){
-					transition_table[i][j].states[k] = exp2.transition_table[exp2_index][j].states[k] + exp1_count;
-				}
+				clear_states(&transition_table[i][j]);
+        for(int dest = 0; dest < MaxStates; dest++){
+          if(in_states(&exp2.transition_table[exp2_index][j], dest)){
+              add_state(&transition_table[i][j], dest + exp1_count);  // offset destination by exp1_count
+          }
+        }
 			}
 		}
 	}
 	
 	//adding epsilon transition from exp1 to exp2
-	transition_table[exp1_count-1][0].count = 1;
-	transition_table[exp1_count-1][0].states[0] = exp1_count;
+  clear_states(&transition_table[exp1_count-1][0]);
+  add_state(&transition_table[exp1_count-1][0], exp1_count);
 	
-	return make_enfa(
+  return make_enfa(
 		new_state_count,
 		states,
 		alphabet.count,
@@ -149,12 +150,12 @@ struct ENFA or_op(struct alphabet alphabet, struct ENFA exp1, struct ENFA exp2){
 	for(int i = 0; i<new_state_count; i++){
 		if(i == 0){
 			//defining epsilon transtions for new start state	
-			transition_table[0][0].count = 2;
-			transition_table[0][0].states[0] = 1;
-			transition_table[0][0].states[1] = exp1_count+1;
-			for(int j = 1; j<num_alphabet; j++){
-				transition_table[0][j].count = 0;
-			}
+			clear_states(&transition_table[0][0]);
+      add_state(&transition_table[0][0], 1);              // epsilon to start of exp1
+      add_state(&transition_table[0][0], exp1_count + 1); // epsilon to start of exp2
+      for(int j = 1; j < num_alphabet; j++){
+        clear_states(&transition_table[0][j]);
+      }
 		}
 		else if(i>0 && i<=exp1_count){ //for all states of exp1, offset by1
 			int exp1_index = i - 1; //the index of all states in exp1 will be offset by 1
@@ -162,18 +163,19 @@ struct ENFA or_op(struct alphabet alphabet, struct ENFA exp1, struct ENFA exp2){
 
 			if(i == exp1_count){
 				//here we can directly add new transtion beacuse final states dont have outgoing Xitions
-				transition_table[i][0].count = 1;
-				transition_table[i][0].states[0] = new_final_index;
-				j = 1;
+				clear_states(&transition_table[i][0]);
+        add_state(&transition_table[i][0], new_final_index);
+        j = 1;
 			}
 
 			//for all states in exp1, the resultant states in its transition table also need to be offsetted
 			for(; j<num_alphabet; j++){ 
-				int curr_count = exp1.transition_table[exp1_index][j].count;
-				transition_table[i][j].count = curr_count;
-				for(int k = 0; k<curr_count; k++){
-					transition_table[i][j].states[k] = exp1.transition_table[exp1_index][j].states[k] + 1;
-				}
+				clear_states(&transition_table[i][j]);
+        for(int dest = 0; dest < MaxStates; dest++){
+          if(in_states(&exp1.transition_table[exp1_index][j], dest)){
+            add_state(&transition_table[i][j], dest + 1);  // offset by 1 for new start state
+          }
+        }
 			}
 		}
 		else if(i>exp1_count && i < new_final_index){
@@ -181,26 +183,26 @@ struct ENFA or_op(struct alphabet alphabet, struct ENFA exp1, struct ENFA exp2){
 			int j = 0;
 
 			if(i == new_final_index-1){
-				transition_table[i][0].count = 1;
-				transition_table[i][0].states[0] = new_final_index;			
+				clear_states(&transition_table[i][0]);
+        add_state(&transition_table[i][0], new_final_index);
 				j = 1;
 			}
 			
 			//for all states in exp2, the resultant states in its transition table also need to be offsetted
 			for(; j<num_alphabet; j++){ 
-				int curr_count = exp2.transition_table[exp2_index][j].count;
-				transition_table[i][j].count = curr_count;
-				for(int k = 0; k<curr_count; k++){
-				transition_table[i][j].states[k] = exp2.transition_table[exp2_index][j].states[k] + exp2_offset;
-				}
+				clear_states(&transition_table[i][j]);
+        for(int dest = 0; dest < MaxStates; dest++){
+          if(in_states(&exp2.transition_table[exp2_index][j], dest)){
+            add_state(&transition_table[i][j], dest + exp2_offset);  // offset by exp2_offset
+          }
+        }
 			}
 		}
 		else{
 			//setting all transitions from new final state 
-			for(int j = 0; j<num_alphabet; j++){
-				transition_table[new_final_index][j].count = 0;
-			}
-						
+			for(int j = 0; j < num_alphabet; j++){
+        clear_states(&transition_table[new_final_index][j]);
+      }
 		}
 	}
 	
@@ -238,12 +240,12 @@ struct ENFA kleene_closure_op(struct alphabet alphabet, struct ENFA exp1){
 	for(int i = 0; i<new_state_count; i++){
 		if(i == 0){
 			//defining epsilon transtions for new start state	
-			transition_table[0][0].count = 2;
-			transition_table[0][0].states[0] = 1;
-			transition_table[0][0].states[1] = new_final_index;
-			for(int j = 1; j<num_alphabet; j++){
-				transition_table[0][j].count = 0;
-			}
+			clear_states(&transition_table[0][0]);
+      add_state(&transition_table[0][0], 1);               // epsilon to exp1 start
+      add_state(&transition_table[0][0], new_final_index); // epsilon to new final (skip exp1)
+      for(int j = 1; j < num_alphabet; j++){
+        clear_states(&transition_table[0][j]);
+      }
 			
 		}
 		else if(i <= exp1_count){ //for all states in exp1
@@ -251,25 +253,26 @@ struct ENFA kleene_closure_op(struct alphabet alphabet, struct ENFA exp1){
 			int j = 0;
 			
 			if(i == exp1_count){
-				transition_table[i][0].count = 2;
-				transition_table[i][0].states[0] = 1;
-				transition_table[i][0].states[1] = new_final_index;
-				j = 1;
+				clear_states(&transition_table[i][0]);
+        add_state(&transition_table[i][0], 1);               // loop back to exp1 start
+        add_state(&transition_table[i][0], new_final_index); // epsilon to new final
+        j = 1;
 			}
 			
 			for(; j<num_alphabet; j++){ 
-				int curr_count = exp1.transition_table[exp1_index][j].count;
-				transition_table[i][j].count = curr_count;
-				for(int k = 0; k<curr_count; k++){
-					transition_table[i][j].states[k] = exp1.transition_table[exp1_index][j].states[k] + 1;
-				}
+				clear_states(&transition_table[i][j]);
+        for(int dest = 0; dest < MaxStates; dest++){
+          if(in_states(&exp1.transition_table[exp1_index][j], dest)){
+            add_state(&transition_table[i][j], dest + 1);  // offset by 1 for new start state
+          }
+        }
 			}
 		}
 		else{
 			//define all null transtions for the new final state
-			for(int j = 0; j<num_alphabet; j++){ 
-				transition_table[i][j].count = 0;
-			}
+			for(int j = 0; j < num_alphabet; j++){
+        clear_states(&transition_table[i][j]);
+      }
 		}
 	}
 	
@@ -311,10 +314,10 @@ struct alphabet find_alphabet(char *regex){
 }
 
 struct ENFA convert_to_enfa(char *regex){
-	int str_len = strlen(regex);
+  int str_len = strlen(regex);
 	
 	struct alphabet regex_alphabet= find_alphabet(regex);
-  
+
 	/*
 	if(is_regex(*regex) == 0){ // check if it is regex at all (probably will need non regex checking lmao)
 		printf("Given string is NOT a regular expression, try again\n");
@@ -328,7 +331,7 @@ struct ENFA convert_to_enfa(char *regex){
 			this turns out to be the only solution because . is important to make e_nfa
 	*/
 	char *completed_exp = complete_regex(regex);	
-	char *postfix = infix_to_postfix(completed_exp);
+  char *postfix = infix_to_postfix(completed_exp);
 
 	struct ENFA enfa_stack[str_len];
 	int top = -1;
@@ -336,8 +339,8 @@ struct ENFA convert_to_enfa(char *regex){
 	char *ptr = postfix;
 	
 	//struct alphabet myalphabet = alphabet1;
-
-	enfa_stack[++top] = char_to_enfa(regex_alphabet,*(ptr++));
+	
+  enfa_stack[++top] = char_to_enfa(regex_alphabet,*(ptr++));
 
 	struct ENFA temp;
 	while(top != -1 && *ptr){
