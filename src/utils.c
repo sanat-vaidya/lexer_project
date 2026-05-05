@@ -135,16 +135,6 @@ void sort_states(struct set_of_states *set){
 }
 
 
-int get_position(struct set_of_states states, int state_value){
-	//gets the corresponding index for the value of a state
-    /*
-    for(int i = 0; i < states.count; i++){
-        if(states.states[i] == state_value) return i;
-    }
-    */
-    return -1;
-}
-
 //-------------------------------------------------------------------------------------------
 
 //infix to postfix

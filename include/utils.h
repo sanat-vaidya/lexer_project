@@ -23,7 +23,6 @@ typedef struct set_of_states{
 
 void copy_set(struct set_of_states *dest,const set_of_states src);
 int in_states(int states[],int count,int current_state);
-int get_position(struct set_of_states states, int state_value);
 void add_to_set(struct set_of_states *set, unsigned int state);
 int in_set(const struct set_of_states *set, unsigned int states);
 
