@@ -106,6 +106,7 @@ int get_index(struct alphabet alphabet, char ch){
 
 void add_to_set(struct set_of_states *set, unsigned int state){
   set->words[state/StatesPerWord] |= (1ULL << state%StatesPerWord);
+  set->count++;
 }
 
 int in_set(const struct set_of_states *set, unsigned int state) {
@@ -134,7 +135,12 @@ void sort_states(struct set_of_states *set){
 	/*quick_sort(set->states,0,set->count-1);*/
 }
 
-
+void print_binary(uint64_t value) {
+    for (int i = 63; i >= 0; i--) {
+        printf("%d", (int)((value >> i) & 1));
+    }
+    printf("\n");
+}
 //-------------------------------------------------------------------------------------------
 
 //infix to postfix
