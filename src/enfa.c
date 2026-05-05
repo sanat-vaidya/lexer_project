@@ -343,7 +343,7 @@ struct DFA convert_to_dfa(struct ENFA e_nfa){
 		if(i == dead_state_index) continue;
 		struct set_of_states curr_set = result_sets.set[i];
 		for(int j = 0; j<curr_set.count; j++){
-			if(in_final(e_nfa.final_states, curr_set.states[j]) == 1){
+			if(in_set(e_nfa.final_states, curr_set.states[j]) == 1){
 				res_final_states[res_final_count++] = i;
 				break;
 			}

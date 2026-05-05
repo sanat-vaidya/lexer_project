@@ -134,15 +134,6 @@ void sort_states(struct set_of_states *set){
 	/*quick_sort(set->states,0,set->count-1);*/
 }
 
-//checks if a given state is in the set of final states
-int in_final(struct set_of_states final_states,int current_state){
-  /*	
-	for(int i = 0;i <final_states.count;i++){
-		if(final_states.states[i] == current_state) return 1;
-	}
-  */	
-	return 0;
-}
 
 int get_position(struct set_of_states states, int state_value){
 	//gets the corresponding index for the value of a state

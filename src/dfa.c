@@ -134,7 +134,7 @@ int run_dfa(DFA dfa, char *str_ptr){
 	}
 	
 	
-	if(in_final(dfa.final_states,currstate)){ 
+	if(in_set(dfa.final_states,currstate)){ 
 		printf("\nYAYAYYAYAYYA\n"); 
 		return 1;
 	}
@@ -153,7 +153,7 @@ int is_distinguishable(struct DFA dfa, int num_states, int matrix[][num_states],
 	   but the function had matrix[][MaxStates] the matrix is stored as [0][0] [0][1]...[0][99]
 	   so matrix[2][j] will result in memory location sizeofint*2*(MaxStates) + j which is incorrect
 	*/
-    if(in_final(dfa.final_states, pos1) != in_final(dfa.final_states, pos2)){
+    if(in_set(dfa.final_states, pos1) != in_set(dfa.final_states, pos2)){
         return 1;
     }
 
@@ -231,7 +231,7 @@ void initialize_matrix(struct DFA dfa, int distinguishable_matrix[][dfa.states.c
 	for(int i = 0;i<num_states;i++){
 		for(int j = 0; j<num_states;j++){ // only consider lower triangle of the matrix
 			// pass i and j (positions) not state values
-			if(in_final(dfa.final_states,i) != in_final(dfa.final_states,j)){
+			if(in_set(dfa.final_states,i) != in_set(dfa.final_states,j)){
 				distinguishable_matrix[i][j] = 1; //again, PASS i and j, not state1 state2
 				distinguishable_matrix[j][i] = 1;
 			}
@@ -309,7 +309,7 @@ struct DFA minimize_dfa(DFA dfa){
 	int res_final_states[partition_count];
 	int res_final_states_count = 0;
 	for(int i = 0; i<partition_count; i++){
-		if(in_final(dfa.final_states,partitions[i].states[0]) == 1){ // states[0] is now a position, in_final compares positions
+		if(in_set(dfa.final_states,partitions[i].states[0]) == 1){ // states[0] is now a position, in_final compares positions
 			res_final_states[res_final_states_count++] = i;
 		}
 	}
