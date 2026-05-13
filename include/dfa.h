@@ -15,14 +15,12 @@ typedef struct DFA{  //basically a 5 tuple definition of a DFA, alphabet yet to 
 } DFA;
 
 struct DFA make_dfa(
-    int num_states,
-    int states[],
+    struct set_of_states states, 
     int alphabet_size,
     char alphabet_symbols[],
     int transition_table[][alphabet_size],
     int start_state,
-    int num_final_states,
-    int final_states[]
+    struct set_of_states final_states 
 );
 
 void print_dfa(struct DFA dfa);

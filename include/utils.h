@@ -23,9 +23,12 @@ typedef struct set_of_states{
 } set_of_states;
 
 void copy_set(struct set_of_states *dest,const set_of_states src);
-int in_states(int states[],int count,int current_state);
+int in_int_array(int states[],int count,int current_state);
 void add_to_set(struct set_of_states *set, unsigned int state);
+void clear_set(struct set_of_states *set);
 int in_set(const struct set_of_states *set, unsigned int states);
+int get_any_state(struct set_of_states *set);
+void clear_uint_array(uint64_t *array);
 void print_binary(uint64_t value);
 void sort_states(struct set_of_states *set);
 
@@ -41,7 +44,7 @@ typedef struct alphabet{ //A structure that contains a list of states and the co
 
 //----------------------------------------------------
 
-int get_index(struct alphabet alphabet, char ch);
+int get_index(struct alphabet *alphabet, char ch);
 void swap(int *a, int *b);
 int partition(int arr[], int low, int high);
 void quick_sort(int arr[], int low, int high);

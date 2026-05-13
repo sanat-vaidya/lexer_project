@@ -86,11 +86,11 @@ void copy_alphabet(struct alphabet *dest, struct alphabet src){
 }
 //----------------------------------------------------
 
-int get_index(struct alphabet alphabet, char ch){
+int get_index(struct alphabet *alphabet, char ch){
   //Currently this functions returns the corresponding index for a given input symbol
-	int size = alphabet.count;
+	int size = alphabet->count;
 	for(int i = 0; i<size; i++){
-		if(alphabet.symbols[i] == ch) return i;
+		if(alphabet->symbols[i] == ch) return i;
 	}
 	
 	return -1;
@@ -122,8 +122,26 @@ void copy_set(struct set_of_states *dest, const struct set_of_states src){
   }
 }
 
+void clear_set(struct set_of_states *set){
+  for(int i=0; i<WordsNeeded; i++) set->words[i] = 0;
+  set->count = 0;
+}
 
-int in_states(int states[],int count,int current_state){
+int get_any_state(struct set_of_states *set){
+    for(int w = 0; w < WordsNeeded; w++){
+        if(set->words[w] != 0){
+            return w * 64 + __builtin_ctzll(set->words[w]);
+        }
+    }
+    return -1;
+}
+
+void clear_uint_array(uint64_t *array){
+  for(int i=0; i<WordsNeeded; i++) array[i] = 0;
+}
+
+
+int in_int_array(int states[],int count,int current_state){
 	for(int i = 0;i<count;i++){
 		if(states[i] == current_state) return 1;
 	}
