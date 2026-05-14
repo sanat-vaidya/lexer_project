@@ -23,16 +23,10 @@ struct DFA make_dfa(
 
     // copy states
     int num_states = states.count;
-    dfa.states.count = num_states;
-    for(int i = 0; i<WordsNeeded; i++){
-      dfa.states.words[i] = states.words[i];
-    }
+    dfa.states = states;
 
     // copy final states, converting values to positions
-    dfa.final_states.count = final_states.count;
-    for(int i = 0; i<WordsNeeded; i++){
-      dfa.final_states.words[i] = final_states.words[i];
-    }
+    dfa.final_states = final_states;
 
     // allocate transition table
     dfa.transition_table = malloc(num_states * sizeof(int*));
@@ -43,9 +37,7 @@ struct DFA make_dfa(
 
     // copy transition table, converting destination values to positions
     for(int i = 0; i < num_states; i++){
-        for(int j = 0; j < alphabet_size; j++){
-          dfa.transition_table[i][j] = transition_table[i][j]; // store position, not value
-        }
+       memcpy(dfa.transition_table[i], transition_table[i], alphabet_size *(sizeof(int))); 
         
     }
 

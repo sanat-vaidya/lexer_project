@@ -104,7 +104,7 @@ int get_index(struct alphabet *alphabet, char ch){
     each set_of_states function will be represented by set_<operation>
   */
 
-void add_to_set(struct set_of_states *set, unsigned int state){
+void add_to_set(struct set_of_states *set, unsigned int state){ //assume state is unique (does not already exit)
   set->words[state/StatesPerWord] |= (1ULL << state%StatesPerWord);
   set->count++;
 }
@@ -158,6 +158,17 @@ void print_binary(uint64_t value) {
         printf("%d", (int)((value >> i) & 1));
     }
     printf("\n");
+}
+
+void print_set(struct set_of_states set){
+	printf("{ ");
+	for(int i = 0; i < MaxStates; i++){
+		if(in_set(&set, i)){
+			printf("%d ", i);
+		}
+	}
+
+	printf("}");
 }
 //-------------------------------------------------------------------------------------------
 

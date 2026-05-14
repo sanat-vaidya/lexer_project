@@ -30,6 +30,7 @@ int in_set(const struct set_of_states *set, unsigned int states);
 int get_any_state(struct set_of_states *set);
 void clear_uint_array(uint64_t *array);
 void print_binary(uint64_t value);
+void print_set(struct set_of_states set);
 void sort_states(struct set_of_states *set);
 
 typedef struct set_of_set{
