@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdint.h>
 
 //--------sorting codes--------------
 void swap(int *a, int *b){
@@ -69,13 +70,6 @@ void quick_sort_c(char arr[], int low, int high){
 //----------------------------------------------------
 
 //copying stuff
-void copy_states(struct set_of_states *dest, int states[], int size){
-	dest->count = size;
-	for(int i = 0; i<size; i++){
-		dest->states[i] = states[i];
-	}
-}
-
 void copy_table(int dest[][MaxSizeOfAlphabet], int src[][MaxSizeOfAlphabet], int row_size, int col_size){
 	for(int i = 0; i<row_size; i++){
 		for(int j =0; j<col_size;j++){
@@ -92,9 +86,62 @@ void copy_alphabet(struct alphabet *dest, struct alphabet src){
 }
 //----------------------------------------------------
 
+int get_index(struct alphabet *alphabet, char ch){
+  //Currently this functions returns the corresponding index for a given input symbol
+	int size = alphabet->count;
+	for(int i = 0; i<size; i++){
+		if(alphabet->symbols[i] == ch) return i;
+	}
+	
+	return -1;
+}
+
+
 //----Opetations with states, set of states------------------------
 
-int in_states(int states[],int count,int current_state){
+  /*Since im going to be trying to change the fundamental implemention of 
+   * set_of_states, i will need a lot of functions to go along with it.
+    each set_of_states function will be represented by set_<operation>
+  */
+
+void add_to_set(struct set_of_states *set, unsigned int state){ //assume state is unique (does not already exit)
+  set->words[state/StatesPerWord] |= (1ULL << state%StatesPerWord);
+  set->count++;
+}
+
+int in_set(const struct set_of_states *set, unsigned int state) {
+    // 1. Shift instead of division (64 = 2^6)
+    // 2. Mask instead of modulo (state % 64 is the same as state & 63)
+    // 3. Return 1 or 0 explicitly
+    return (set->words[state >> 6] & (1ULL << (state & 63))) != 0;
+}
+
+void copy_set(struct set_of_states *dest, const struct set_of_states src){
+  for(int i = 0; i<WordsNeeded; i++){
+    dest->words[i] = src.words[i];
+  }
+}
+
+void clear_set(struct set_of_states *set){
+  for(int i=0; i<WordsNeeded; i++) set->words[i] = 0;
+  set->count = 0;
+}
+
+int get_any_state(struct set_of_states *set){
+    for(int w = 0; w < WordsNeeded; w++){
+        if(set->words[w] != 0){
+            return w * 64 + __builtin_ctzll(set->words[w]);
+        }
+    }
+    return -1;
+}
+
+void clear_uint_array(uint64_t *array){
+  for(int i=0; i<WordsNeeded; i++) array[i] = 0;
+}
+
+
+int in_int_array(int states[],int count,int current_state){
 	for(int i = 0;i<count;i++){
 		if(states[i] == current_state) return 1;
 	}
@@ -103,37 +150,27 @@ int in_states(int states[],int count,int current_state){
 }
 
 void sort_states(struct set_of_states *set){
-	quick_sort(set->states,0,set->count-1);
+	/*quick_sort(set->states,0,set->count-1);*/
 }
 
-//checks if a given state is in the set of final states
-int in_final(struct set_of_states final_states,int current_state){
-	
-	for(int i = 0;i <final_states.count;i++){
-		if(final_states.states[i] == current_state) return 1;
-	}
-	
-	return 0;
-}
-
-int get_position(struct set_of_states states, int state_value){
-	//gets the corresponding index for the value of a state
-    for(int i = 0; i < states.count; i++){
-        if(states.states[i] == state_value) return i;
+void print_binary(uint64_t value) {
+    for (int i = 63; i >= 0; i--) {
+        printf("%d", (int)((value >> i) & 1));
     }
-    return -1;
+    printf("\n");
 }
 
-
-int get_index(struct alphabet alphabet, char ch){
-  //Currently this functions returns the corresponding index for a given input symbol
-	int size = alphabet.count;
-	for(int i = 0; i<size; i++){
-		if(alphabet.symbols[i] == ch) return i;
+void print_set(struct set_of_states set){
+	printf("{ ");
+	for(int i = 0; i < MaxStates; i++){
+		if(in_set(&set, i)){
+			printf("%d ", i);
+		}
 	}
-	
-	return -1;
+
+	printf("}");
 }
+//-------------------------------------------------------------------------------------------
 
 //infix to postfix
 int precedence(char ch){
@@ -187,6 +224,21 @@ char *infix_to_postfix(char *in){
     postfix[i] = '\0';
     
     return postfix;
+}
+
+void remove_all_whitespace(char *str) {
+	char *read = str;  // Pointer to scan the original string
+	char *write = str; // Pointer to write non-whitespace characters
+
+	while (*read) {
+		// isspace() checks for ' ', '\t', '\n', '\v', '\f', '\r'
+		if (!isspace((unsigned char)*read)) {
+			*write = *read;
+			write++;
+		}
+		read++;
+	}
+	*write = '\0'; // Properly null-terminate the modified string
 }
 //--------------------------------------------------------------------------
 

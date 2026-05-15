@@ -6,14 +6,12 @@
 #include <ctype.h>
 
 struct DFA make_dfa(
-    int num_states,
-    int states[],
+    struct set_of_states states, 
     int alphabet_size,
     char alphabet_symbols[],
     int transition_table[][alphabet_size],
     int start_state,
-    int num_final_states,
-    int final_states[]
+    struct set_of_states final_states 
 ){
     DFA dfa;
 
@@ -24,18 +22,11 @@ struct DFA make_dfa(
     }
 
     // copy states
-    dfa.states.count = num_states;
-    for(int i = 0; i < num_states; i++){
-        dfa.states.states[i] = states[i];
-    }
+    int num_states = states.count;
+    dfa.states = states;
 
     // copy final states, converting values to positions
-    dfa.final_states.count = num_final_states;
-    for(int i = 0; i < num_final_states; i++){
-        for(int j = 0; j < num_states; j++){
-            if(states[j] == final_states[i]) dfa.final_states.states[i] = j;
-        }
-    }
+    dfa.final_states = final_states;
 
     // allocate transition table
     dfa.transition_table = malloc(num_states * sizeof(int*));
@@ -46,28 +37,12 @@ struct DFA make_dfa(
 
     // copy transition table, converting destination values to positions
     for(int i = 0; i < num_states; i++){
-        for(int j = 0; j < alphabet_size; j++){
-            int dest_value = transition_table[i][j];
-            
-            if(dest_value == -1){  // dead state sentinel, skip conversion
-		        dfa.transition_table[i][j] = -1;
-		        continue;
-		    }
-            
-            for(int k = 0; k < num_states; k++){
-                if(states[k] == dest_value){
-                    dfa.transition_table[i][j] = k; // store position, not value
-                    break;
-                }
-            }
-        }
+       memcpy(dfa.transition_table[i], transition_table[i], alphabet_size *(sizeof(int))); 
+        
     }
 
     // convert start state value to position
-    dfa.start_state = -1;
-    for(int i = 0; i < num_states; i++){
-        if(states[i] == start_state) dfa.start_state = i;
-    }
+    dfa.start_state = start_state;
 
     return dfa;
 }
@@ -82,15 +57,15 @@ void print_dfa(struct DFA dfa){
 	}
 	printf("\n");
 	
-	printf("States: ");
-	for(int i = 0;i<dfa.states.count;i++){
-		printf("%d ",dfa.states.states[i]);
+	printf("States: \n");
+	for(int i = 0;i<WordsNeeded;i++){
+		print_binary(dfa.states.words[i]);
 	}
 	printf("\n");
 	
-	printf("Final States: ");
-	for(int i = 0;i<dfa.final_states.count;i++){
-		printf("%d ",dfa.final_states.states[i]);
+	printf("Final States: \n");
+	for(int i = 0;i<WordsNeeded;i++){
+		print_binary(dfa.final_states.words[i]);
 	}
 	printf("\n");
 	
@@ -117,9 +92,9 @@ int run_dfa(DFA dfa, char *str_ptr){
 	int currstate = dfa.start_state;
 	
 	while(*str_ptr){
-		int alpha_index = get_index(dfa.alphabet,*str_ptr);
+		int alpha_index = get_index(&dfa.alphabet,*str_ptr);
 		if(alpha_index == -1){
-			printf("Char: '%c' NOT inalphabet\n",*str_ptr);
+			printf("Char: '%c' NOT in alphabet\n",*str_ptr);
 			printf("\nNOOO :(\n");	
 			return 0;
 		}
@@ -134,7 +109,7 @@ int run_dfa(DFA dfa, char *str_ptr){
 	}
 	
 	
-	if(in_final(dfa.final_states,currstate)){ 
+	if(in_set(&dfa.final_states,currstate)){ 
 		printf("\nYAYAYYAYAYYA\n"); 
 		return 1;
 	}
@@ -146,6 +121,7 @@ int run_dfa(DFA dfa, char *str_ptr){
 
 }
 
+
 int is_distinguishable(struct DFA dfa, int num_states, int matrix[][num_states], int pos1, int pos2){
 	
 	/* VERY VERY VERY important to pass num_states because
@@ -153,7 +129,7 @@ int is_distinguishable(struct DFA dfa, int num_states, int matrix[][num_states],
 	   but the function had matrix[][MaxStates] the matrix is stored as [0][0] [0][1]...[0][99]
 	   so matrix[2][j] will result in memory location sizeofint*2*(MaxStates) + j which is incorrect
 	*/
-    if(in_final(dfa.final_states, pos1) != in_final(dfa.final_states, pos2)){
+    if(in_set(&dfa.final_states, pos1) != in_set(&dfa.final_states, pos2)){
         return 1;
     }
 
@@ -176,35 +152,37 @@ int is_distinguishable(struct DFA dfa, int num_states, int matrix[][num_states],
     return 0;
 }
 
-int partition_states(DFA dfa, int distinguishable_matrix[][dfa.states.count],struct set_of_states partitions[])
-{
+/* partition_states takes a dfa and distinguishable_matrix,
+ * and returns grouped partitions
+ * each partition has a group of equivalent states!!
+ */
+int partition_states(DFA dfa, int distinguishable_matrix[][dfa.states.count],struct set_of_states partitions[]){
     int num_states = dfa.states.count;
-
-    int visited[num_states];
-    int visited_count = 0;
+    
+    //initialize visited to keep track of all visited states
+    struct set_of_states visited;
+    clear_set(&visited);
 
     int partition_count = 0;
 
     for(int i = 0; i < num_states; i++){
+        if(in_set(&visited,i) == 0){ // check position not value
+            clear_set(&partitions[partition_count]);
 
-        if(in_states(visited, visited_count, i) == 0){ // check position not value
-
-            int state_count = 0;
-
-            visited[visited_count++] = i;
-            partitions[partition_count].states[state_count++] = i; // store position not value
+            add_to_set(&visited,i);
+            add_to_set(&partitions[partition_count],i); // store position not value
 
             for(int j = i + 1; j < num_states; j++){
 
                 if(distinguishable_matrix[i][j] == 0) //important to pass i and j rather than state1 state2 (they represnt values and not state indices)
 											           //because we are partitioning each state and dont care about the actual name/value of that state
-				{
-					partitions[partition_count].states[state_count++] = j; // store position not value
-					visited[visited_count++] = j;
-				}
+				        {
+
+                  add_to_set(&partitions[partition_count],j); // store position not value
+                  add_to_set(&visited,j);
+				        }
             }
 
-            partitions[partition_count].count = state_count;
             partition_count++;
         }
     }
@@ -214,10 +192,7 @@ int partition_states(DFA dfa, int distinguishable_matrix[][dfa.states.count],str
 
 int get_partition(struct set_of_states partitions[], int partition_count, int original_state){
 	for(int i = 0; i<partition_count; i++){
-		int num_states = partitions[i].count;
-		for(int j = 0; j< num_states; j++){
-			if(original_state == partitions[i].states[j]) return i;
-		}
+	  if(in_set(&partitions[i],original_state)) return i;
 	}
 	
 	return -1;
@@ -231,7 +206,7 @@ void initialize_matrix(struct DFA dfa, int distinguishable_matrix[][dfa.states.c
 	for(int i = 0;i<num_states;i++){
 		for(int j = 0; j<num_states;j++){ // only consider lower triangle of the matrix
 			// pass i and j (positions) not state values
-			if(in_final(dfa.final_states,i) != in_final(dfa.final_states,j)){
+			if(in_set(&dfa.final_states,i) != in_set(&dfa.final_states,j)){
 				distinguishable_matrix[i][j] = 1; //again, PASS i and j, not state1 state2
 				distinguishable_matrix[j][i] = 1;
 			}
@@ -274,8 +249,8 @@ void table_filling_algorithm(struct DFA dfa, int distinguishable_matrix[][dfa.st
 
 struct DFA minimize_dfa(DFA dfa){
 	int num_states = dfa.states.count;
-		
-	int distinguishable_matrix[num_states][num_states];
+	
+  int distinguishable_matrix[num_states][num_states];
 	
 	//Run table filling algorithm and update the distinguishable_table
 	table_filling_algorithm(dfa,distinguishable_matrix);
@@ -292,36 +267,43 @@ struct DFA minimize_dfa(DFA dfa){
 	int res_Xition_table[partition_count][dfa.alphabet.count];
 	
 	for(int i = 0;i<partition_count;i++){
-		int res_state = partitions[i].states[0]; // already a position
-		for(int j = 0; j<dfa.alphabet.count; j++){
+		int res_state = get_any_state(&partitions[i]);
+		
+    if(res_state == -1){
+      printf("ERROR: empty partition %d\n", i);
+      exit(1);
+    }
+
+    for(int j = 0; j<dfa.alphabet.count; j++){
 			int res_state_after_transition = get_partition(partitions, partition_count, dfa.transition_table[res_state][j]);
 			res_Xition_table[i][j] = res_state_after_transition;
 		}
 	}
 
 	//make set of states in min dfa
-	int res_states[partition_count];
+	struct set_of_states res_states;
+  clear_set(&res_states);
 	for(int i = 0; i<partition_count; i++){
-		res_states[i] = i;
-	}
+	  add_to_set(&res_states,i);
+  }
 	
 	//make set of final states in min dfa
-	int res_final_states[partition_count];
-	int res_final_states_count = 0;
+	struct set_of_states res_final_states;
+	clear_set(&res_final_states);
 	for(int i = 0; i<partition_count; i++){
-		if(in_final(dfa.final_states,partitions[i].states[0]) == 1){ // states[0] is now a position, in_final compares positions
-			res_final_states[res_final_states_count++] = i;
-		}
+		if(in_set(&dfa.final_states,get_any_state(&partitions[i])) == 1){ // states[0] is now a position, in_final compares positions
+			add_to_set(&res_final_states,i);
+    }
 	}
 	
 	//make new dfa
-	res_dfa = make_dfa(partition_count,res_states,
+	res_dfa = make_dfa(res_states,
 					   dfa.alphabet.count,dfa.alphabet.symbols,
 					   res_Xition_table,
-					   get_partition(partitions,partition_count,dfa.start_state),
-					   res_final_states_count,
+					   get_partition(partitions,partition_count,dfa.start_state),   
 					   res_final_states);
-	
+  
 	return res_dfa;
 	
 }
+
