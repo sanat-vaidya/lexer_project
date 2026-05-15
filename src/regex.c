@@ -259,32 +259,37 @@ struct ENFA or_op(struct alphabet *alphabet, struct ENFA *exp1, struct ENFA *exp
 		);
 	
 }
-/*
-struct ENFA kleene_closure_op(struct alphabet alphabet, struct ENFA exp1){
+
+struct ENFA kleene_closure_op(struct alphabet *alphabet, struct ENFA *exp1){
 	//defining new states
-	int new_state_count = exp1.states.count + 2;
-	int states[new_state_count];
-	for(int i = 0; i<new_state_count; i++) states[i] = i;
+	int new_state_count = exp1->states.count + 2;
+  struct set_of_states states;
+  clear_set(&states);
+
+	for(int i = 0; i<new_state_count; i++) add_to_set(&states, i);
 	
 	//defining final states
-	int finals[] = {new_state_count-1};
+	struct set_of_states finals;
+  clear_set(&finals);
+  add_to_set(&finals, new_state_count-1);
 	
-	int num_alphabet = alphabet.count;
-	int exp1_count = exp1.states.count;
+	int num_alphabet = alphabet->count;
+	int exp1_count = exp1->states.count;
 	int new_final_index = new_state_count-1;
 
 	//defining transition table
-	struct set_of_states transition_table[new_state_count][alphabet.count];
+	struct set_of_states transition_table[new_state_count][num_alphabet];
 	
 	//defining different loops for each set of states and copying them into transition table
 	for(int i = 0; i<new_state_count; i++){
 		if(i == 0){
 			//defining epsilon transtions for new start state	
-			transition_table[0][0].count = 2;
-			transition_table[0][0].states[0] = 1;
-			transition_table[0][0].states[1] = new_final_index;
+      clear_set(&transition_table[0][0]);
+      add_to_set(&transition_table[0][0], 1);
+      add_to_set(&transition_table[0][0], new_final_index);
+
 			for(int j = 1; j<num_alphabet; j++){
-				transition_table[0][j].count = 0;
+				clear_set(&transition_table[0][j]);
 			}
 			
 		}
@@ -293,42 +298,36 @@ struct ENFA kleene_closure_op(struct alphabet alphabet, struct ENFA exp1){
 			int j = 0;
 			
 			if(i == exp1_count){
-				transition_table[i][0].count = 2;
-				transition_table[i][0].states[0] = 1;
-				transition_table[i][0].states[1] = new_final_index;
+        clear_set(&transition_table[i][0]);
+        add_to_set(&transition_table[i][0], 1);
+        add_to_set(&transition_table[i][0], new_final_index);
 				j = 1;
 			}
 			
 			for(; j<num_alphabet; j++){ 
-				int curr_count = exp1.transition_table[exp1_index][j].count;
-				transition_table[i][j].count = curr_count;
-				for(int k = 0; k<curr_count; k++){
-					transition_table[i][j].states[k] = exp1.transition_table[exp1_index][j].states[k] + 1;
-				}
-			}
+        shift_copy_set(&transition_table[i][j],&exp1->transition_table[exp1_index][j],1);
+      }
 		}
 		else{
 			//define all null transtions for the new final state
 			for(int j = 0; j<num_alphabet; j++){ 
-				transition_table[i][j].count = 0;
+        clear_set(&transition_table[i][j]);
 			}
 		}
 	}
 	
 	
 	return make_enfa(
-		new_state_count,
 		states,
-		alphabet.count,
-		alphabet.symbols,
+		alphabet->count,
+		alphabet->symbols,
 		transition_table,
 		0, //start state
-		1,
 		finals
 		);
 
 }
-*/
+
 struct alphabet find_alphabet(char *regex){
   struct alphabet res_alphabet;
   res_alphabet.count = 0;
@@ -351,7 +350,7 @@ struct alphabet find_alphabet(char *regex){
 
   return res_alphabet;
 }
-/*
+
 struct ENFA convert_to_enfa(char *regex){
 	int str_len = strlen(regex);
 	
@@ -362,13 +361,13 @@ struct ENFA convert_to_enfa(char *regex){
 		printf("Given string is NOT a regular expression, try again\n");
 		return res_enfa;
 	}
-	* /
+	*/
 	
 	/*Problem with a direct postfix expression with no dots, while evaluating all operators other that . dont known how far to go till:
 		=> add a helper function that completes a regex:
 			ex- 10000 ==> 1.0.0.0.0 yay!
 			this turns out to be the only solution because . is important to make e_nfa
-	* /
+	*/
 	char *completed_exp = complete_regex(regex);	
 	char *postfix = infix_to_postfix(completed_exp);
 
@@ -379,26 +378,26 @@ struct ENFA convert_to_enfa(char *regex){
 	
 	//struct alphabet myalphabet = alphabet1;
 
-	enfa_stack[++top] = char_to_enfa(regex_alphabet,*(ptr++));
+	enfa_stack[++top] = char_to_enfa(&regex_alphabet,*(ptr++));
 
 	struct ENFA temp;
 	while(top != -1 && *ptr){
 		if(*ptr == '*'){
 			struct ENFA first = enfa_stack[top--];
-			temp = kleene_closure_op(regex_alphabet,first);
+			temp = kleene_closure_op(&regex_alphabet,&first);
 		}
 		else if(*ptr == '+' || *ptr == '|'){
 			struct ENFA second = enfa_stack[top--];
 			struct ENFA first = enfa_stack[top--];
-			temp = or_op(regex_alphabet,first,second);
+			temp = or_op(&regex_alphabet,&first,&second);
 		}
 		else if(*ptr == '.'){
 			struct ENFA second = enfa_stack[top--];
 			struct ENFA first = enfa_stack[top--];
-			temp = concat_op(regex_alphabet,first,second);
+			temp = concat_op(&regex_alphabet,&first,&second);
 		}
 		else{ //This should later be changed to check if the given symbol is in the alphabet
-			temp = char_to_enfa(regex_alphabet,*ptr);
+			temp = char_to_enfa(&regex_alphabet,*ptr);
 		}
 		ptr++;
 		enfa_stack[++top] = temp;
@@ -448,4 +447,4 @@ struct DFA regex_to_dfa(char *regex){
 	
 	return minimized_dfa; 
 }
-*/
+
