@@ -44,7 +44,7 @@ typedef struct alphabet{ //A structure that contains a list of states and the co
 }alphabet;
 
 //----------------------------------------------------
-
+void remove_all_whitespace(char *str);
 int get_index(struct alphabet *alphabet, char ch);
 void swap(int *a, int *b);
 int partition(int arr[], int low, int high);

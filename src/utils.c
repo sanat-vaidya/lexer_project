@@ -225,6 +225,21 @@ char *infix_to_postfix(char *in){
     
     return postfix;
 }
+
+void remove_all_whitespace(char *str) {
+	char *read = str;  // Pointer to scan the original string
+	char *write = str; // Pointer to write non-whitespace characters
+
+	while (*read) {
+		// isspace() checks for ' ', '\t', '\n', '\v', '\f', '\r'
+		if (!isspace((unsigned char)*read)) {
+			*write = *read;
+			write++;
+		}
+		read++;
+	}
+	*write = '\0'; // Properly null-terminate the modified string
+}
 //--------------------------------------------------------------------------
 
 

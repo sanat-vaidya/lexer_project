@@ -8,8 +8,7 @@
 #include <ctype.h>
 
 char *complete_regex(char *regex){
-	char *ptr = regex;
-	
+  char *ptr = regex;
 	int len = strlen(regex);	
 	char *res_str = (char *)(malloc(sizeof(char) * (len*2-1)));
 
@@ -21,7 +20,8 @@ char *complete_regex(char *regex){
 	
 	
 	while(*ptr){
-		if(isalnum(*ptr) || *ptr == '('){
+    
+    if(isalnum(*ptr) || *ptr == '('){
 			if(prev != '(' && prev != '+' && prev != '.' && prev != '|'){
 				res_str[i++] = '.';
 				res_str[i++] = *ptr;
@@ -353,7 +353,9 @@ struct alphabet find_alphabet(char *regex){
 
 struct ENFA convert_to_enfa(char *regex){
 	int str_len = strlen(regex);
-	
+  
+  remove_all_whitespace(regex);
+  	
 	struct alphabet regex_alphabet= find_alphabet(regex);
   
 	/*
