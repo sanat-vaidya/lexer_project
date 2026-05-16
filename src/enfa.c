@@ -172,8 +172,6 @@ struct set_of_states transition_enfa(struct ENFA *e_nfa, struct set_of_states *t
   struct set_of_states res_states;
   clear_set(&res_states);
 
-  int num_states = e_nfa->states.count;
-
   /* new algorithm for bitsets!
     for(each curr_state in temp)
       temp_set = set from transtion on symbol_index
