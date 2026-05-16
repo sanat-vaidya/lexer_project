@@ -12,10 +12,6 @@ int main(int argc, char *argv[]){
         return 1;
     }
     
-    printf("\n\n");
-    struct DFA temp = regex_to_dfa("==");
-    print_dfa(temp);
-    printf("\n\n");
     Lexer lexer;
     if(load_language(&lexer, argv[1]) == 0){
         return 1;
