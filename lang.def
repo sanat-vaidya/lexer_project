@@ -1,0 +1,48 @@
+# C language definition file
+# format: TOKEN_NAME  regex
+
+# keywords first
+KEYWORD_INT     int
+KEYWORD_FLOAT   float
+KEYWORD_CHAR    char
+KEYWORD_IF      if
+KEYWORD_ELSE    else
+KEYWORD_WHILE   while
+KEYWORD_FOR     for
+KEYWORD_RETURN  return
+KEYWORD_VOID    void
+
+# identifier — after keywords so keywords take priority
+IDENT   (a|A|b|B|c|C|d|D|e|E|f|F|g|G|h|H|i|I|j|J|k|K|l|L|m|M|n|N|o|O|p|P|q|Q|r|R|s|S|t|T|u|U|v|V|w|W|x|X|y|Y|z|Z|_).((a|A|b|B|c|C|d|D|e|E|f|F|g|G|h|H|i|I|j|J|k|K|l|L|m|M|n|N|o|O|p|P|q|Q|r|R|s|S|t|T|u|U|v|V|w|W|x|X|y|Y|z|Z|_|0|1|2|3|4|5|6|7|8|9)*)
+# integer literals
+INTEGER (1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)*|0
+
+# multi character operators first
+EQUAL_EQUAL ==
+NOT_EQUAL   !=
+LESS_EQUAL  <=
+GREAT_EQUAL >=
+AND         &&
+OR          \|\|
+
+# single character operators
+EQUALS      =
+PLUS        \+
+MINUS       -
+STAR        \*
+SLASH       /
+PERCENT     %
+LESS        <
+GREATER     >
+NOT         !
+
+# delimiters
+LPAREN      \(
+RPAREN      \)
+LBRACE      \{
+RBRACE      \}
+LBRACKET    \[
+RBRACKET    \]
+SEMICOLON   ;
+COMMA       ,
+COLON       :

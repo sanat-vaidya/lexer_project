@@ -8,53 +8,82 @@
 #include <ctype.h>
 
 char *complete_regex(char *regex){
+  int len = strlen(regex);
+
+  // generous allocation
+  char *res_str = malloc(3 * len + 1);
+  if(res_str == NULL){
+    printf("malloc failed\n");
+    exit(1);
+  }
+
   char *ptr = regex;
-	int len = strlen(regex);	
-	char *res_str = (char *)(malloc(sizeof(char) * (len*2-1)));
+  int i = 0;
 
-	int i = 0;
+  int prev_was_operand = 0;
 
-	char prev = *ptr;
-	res_str[i++] = *ptr;
-	ptr++;
-	
-	
-	while(*ptr){
-    
-    if(isalnum(*ptr) || *ptr == '('){
-			if(prev != '(' && prev != '+' && prev != '.' && prev != '|'){
-				res_str[i++] = '.';
-				res_str[i++] = *ptr;
-			}
-			else res_str[i++] = *ptr;
-		}
-		else{
-			res_str[i++] = *ptr;
-		}
-		
-		prev = *ptr;
-		ptr++;
-	}
-	
-	res_str[i] = '\0';
-	
-	return res_str;
+  while(*ptr){
+
+    // ---------- escaped char ----------
+    if(*ptr == '\\'){
+
+      ptr++;
+
+      if(*ptr == '\0'){
+        printf("Malformed escape sequence\n");
+        exit(1);
+      }
+      // implicit concatenation
+      if(prev_was_operand){
+        res_str[i++] = '.';
+      }
+      res_str[i++] = '\\';
+      res_str[i++] = *ptr;
+
+      prev_was_operand = 1;
+    }
+    // ---------- opening bracket ----------
+    else if(*ptr == '('){
+      // a(b) => a.(b)
+      if(prev_was_operand){
+        res_str[i++] = '.';
+      }
+      res_str[i++] = '(';
+      prev_was_operand = 0;
+    }
+    // ---------- regex operators ----------
+    else if(is_op(*ptr)){
+      res_str[i++] = *ptr;
+      // only kleene star behaves like operand end
+      prev_was_operand = (*ptr == '*');
+    }
+    // ---------- normal character ----------
+    else{
+      // ab => a.b
+      if(prev_was_operand){
+        res_str[i++] = '.';
+      }
+
+      res_str[i++] = *ptr;
+      prev_was_operand = 1;
+    }
+    ptr++;
+  }
+
+  res_str[i] = '\0';
+  return res_str;
 }
-
 static inline void shift_copy_set(
     struct set_of_states *dest,
     const struct set_of_states *src,
     int offset
 ){
-    const int word_shift = offset >> 6; // /64
-    const int bit_shift  = offset & 63; // %64
+    const int word_shift = offset >> 6;
+    const int bit_shift  = offset & 63;
 
-    // clear destination
-    for(int i = 0; i < WordsNeeded; i++)
-        dest->words[i] = 0;
+    clear_set(dest);   // <--- IMPORTANT
 
     if(bit_shift == 0){
-        // fast path: exact word movement
         for(int i = WordsNeeded - 1 - word_shift; i >= 0; i--){
             dest->words[i + word_shift] = src->words[i];
         }
@@ -331,12 +360,32 @@ struct ENFA kleene_closure_op(struct alphabet *alphabet, struct ENFA *exp1){
 struct alphabet find_alphabet(char *regex){
   struct alphabet res_alphabet;
   res_alphabet.count = 0;
-
+  
+  //epsilon always at index 0
   res_alphabet.symbols[res_alphabet.count++] = '\0';
   
   char *ptr = regex;
   
   while(*ptr){
+    
+    //is escape sequence \+ \| \* \(
+    if(*ptr == '\\' ){ 
+      ptr++;
+
+      if(*ptr == '\0'){
+        printf("Malformed escape sequence\n");
+        exit(1);
+      }
+
+      if(get_index(&res_alphabet,*ptr) == -1){
+        res_alphabet.symbols[res_alphabet.count++] = *ptr;
+      }
+
+      ptr++;
+      continue;
+
+    }
+
     if(is_op(*ptr) == 0){
       if(get_index(&res_alphabet,*ptr) == -1){
         res_alphabet.symbols[res_alphabet.count++] = *ptr;
@@ -352,11 +401,14 @@ struct alphabet find_alphabet(char *regex){
 }
 
 struct ENFA convert_to_enfa(char *regex){
-	int str_len = strlen(regex);
-  
-  remove_all_whitespace(regex);
+  int str_len = strlen(regex);
+
+  char regex_copy[str_len + 1];
+  strcpy(regex_copy, regex);
+ 
+  remove_all_whitespace(regex_copy);
   	
-	struct alphabet regex_alphabet= find_alphabet(regex);
+	struct alphabet regex_alphabet= find_alphabet(regex_copy);
   
 	/*
 	if(is_regex(*regex) == 0){ // check if it is regex at all (probably will need non regex checking lmao)
@@ -370,8 +422,13 @@ struct ENFA convert_to_enfa(char *regex){
 			ex- 10000 ==> 1.0.0.0.0 yay!
 			this turns out to be the only solution because . is important to make e_nfa
 	*/
-	char *completed_exp = complete_regex(regex);	
+	char *completed_exp = complete_regex(regex_copy);	
 	char *postfix = infix_to_postfix(completed_exp);
+
+  if(postfix == NULL || strlen(postfix) == 0){
+    printf("Invalid regex: %s\n", regex);
+    exit(1);
+  }
 
 	struct ENFA enfa_stack[str_len];
 	int top = -1;
@@ -379,11 +436,28 @@ struct ENFA convert_to_enfa(char *regex){
 	char *ptr = postfix;
 	
 	//struct alphabet myalphabet = alphabet1;
+  
+  if(is_op(*ptr)){
+    printf("Malformed regex\n");
+    exit(1);
+  }
 
+  if(*ptr == '\\'){
+   ptr++;
+   if(*ptr == '\0'){
+     printf("Malformed escape sequence\n");
+     exit(1);
+   }
+  }
 	enfa_stack[++top] = char_to_enfa(&regex_alphabet,*(ptr++));
-
+  
 	struct ENFA temp;
 	while(top != -1 && *ptr){
+    if(top < 0){
+      printf("Something wrong with your regex (%s)\n",postfix);
+      exit(1);
+    }
+
 		if(*ptr == '*'){
 			struct ENFA first = enfa_stack[top--];
 			temp = kleene_closure_op(&regex_alphabet,&first);
@@ -398,6 +472,16 @@ struct ENFA convert_to_enfa(char *regex){
 			struct ENFA first = enfa_stack[top--];
 			temp = concat_op(&regex_alphabet,&first,&second);
 		}
+    else if(*ptr == '\\'){ //handle escaped characters
+      ptr++;
+
+      if(*ptr == '\0'){
+        printf("Malformed escape sequence\n");
+        exit(1);
+      }
+      
+      temp = char_to_enfa(&regex_alphabet, *ptr);
+    }
 		else{ //This should later be changed to check if the given symbol is in the alphabet
 			temp = char_to_enfa(&regex_alphabet,*ptr);
 		}

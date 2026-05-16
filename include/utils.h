@@ -4,9 +4,8 @@
 #include <stdint.h>
 
 #define MaxStates 1024
-#define MaxSizeOfAlphabet 30
-#define NUMSTATE 5
-#define MAXREGEXLEN 200
+#define MaxSizeOfAlphabet 256
+#define MAXREGEXLEN 2048
 #define StatesPerWord 64
 #define WordsNeeded (MaxStates/StatesPerWord)
 
