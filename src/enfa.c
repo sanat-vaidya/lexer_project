@@ -394,8 +394,6 @@ struct DFA convert_to_dfa(struct ENFA e_nfa){
 
 		struct set_of_states *curr_set = &result_sets.set[i];
     
-    int is_final = 0;
-
 	  for(int word_i=0; word_i<WordsNeeded; word_i++){
       uint64_t word = curr_set->words[word_i];
       
@@ -406,7 +404,6 @@ struct DFA convert_to_dfa(struct ENFA e_nfa){
         if(in_set(&e_nfa.final_states, state)){
           add_to_set(&res_final_states, i);
 
-          is_final=1;
           break;
         }
         word &= (word-1);

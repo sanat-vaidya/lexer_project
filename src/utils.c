@@ -185,45 +185,67 @@ int is_op(char ch) {
 }
 
 char *infix_to_postfix(char *in){
-	int in_len = strlen(in);
-	
-	char stack[in_len + 1];
-	int top = -1;
-	
-	
-	char *postfix = (char *)malloc(sizeof(char) * (in_len+1));
-	int i = 0;
-	
-	while (*in) {
-		char c = *in;
-    	if(isalnum(c)){
-    		postfix[i++] = c;
-    	}
-    	else if(c == '('){
-    		stack[++top] = '(';
-    	}
-    	else if(c == ')'){
-    		while(top != -1 && stack[top] != '('){
-    			postfix[i++] = stack[top--];
-    		}
-    		top--;
-    	}
-    	else{
-    		while(top != -1 && stack[top] != '(' && (precedence(stack[top]) > precedence(c) || (precedence(stack[top]) == precedence(c)))){
-    			postfix[i++] = stack[top--];
-    		}
-    		stack[++top] = c;
-    	}
-    	in++;
+  int in_len = strlen(in);
+
+  char stack[in_len + 1];
+  int top = -1;
+
+  char *postfix = malloc(sizeof(char) * ((in_len * 2) + 1));
+
+  if(postfix == NULL) return NULL;
+
+  int i = 0;
+
+  while(*in){
+    if(*in == '\\'){ // escaped character
+      in++;
+      if(*in == '\0'){
+        free(postfix);
+        return NULL;
+      }
+      postfix[i++] = '\\';// preserve escape sequence
+      postfix[i++] = *in;
     }
-    
-    while(top != -1){
-    	postfix[i++] = stack[top--];
+    else if(!is_op(*in)){//literal character
+      postfix[i++] = *in;
+    }
+    else if(*in == '('){// left parenthesis
+      stack[++top] = '(';
+    }
+    else if(*in == ')'){//right parenthesis
+      while(top != -1 && stack[top] != '('){
+        postfix[i++] = stack[top--];
+      }
+      if(top == -1){// malformed regex
+        free(postfix);
+        return NULL;
+      }
+
+      top--; // remove '('
+    }
+    else{//  operator 
+      while(top != -1 && stack[top] != '(' && precedence(stack[top]) >= precedence(*in)){
+        postfix[i++] = stack[top--];
+      }
+
+      stack[++top] = *in;
     }
 
-    postfix[i] = '\0';
-    
-    return postfix;
+    in++;
+  }
+  // flush remaining stack
+  while(top != -1){
+    // unmatched '('
+    if(stack[top] == '('){
+      free(postfix);
+      return NULL;
+    }
+    postfix[i++] = stack[top--];
+  }
+
+  postfix[i] = '\0';
+
+  return postfix;
 }
 
 void remove_all_whitespace(char *str) {
@@ -241,6 +263,3 @@ void remove_all_whitespace(char *str) {
 	*write = '\0'; // Properly null-terminate the modified string
 }
 //--------------------------------------------------------------------------
-
-
-
