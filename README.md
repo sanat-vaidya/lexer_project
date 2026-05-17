@@ -10,7 +10,7 @@ The pipeline goes: **Regular Expression → ENFA → DFA → Minimized DFA → R
 ```
 project/
 ├── makefile          -- makefile for creating executible file ./automata, used for testing regex -> ./automata "<regex>"
-├── Lex_makefile      -- makefile for the actual lex program
+├── Lex_make          -- makefile for the actual lex program
 ├── include/
 │   ├── utils.h       -- shared structs and utility functions
 │   ├── dfa.h         -- DFA struct and operations
