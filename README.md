@@ -9,6 +9,8 @@ The pipeline goes: **Regular Expression → ENFA → DFA → Minimized DFA → R
 
 ```
 project/
+├── makefile          -- makefile for creating executible file ./automata, used for testing regex -> ./automata "<regex>"
+├── Lex_makefile      -- makefile for the actual lex program
 ├── include/
 │   ├── utils.h       -- shared structs and utility functions
 │   ├── dfa.h         -- DFA struct and operations
@@ -160,11 +162,10 @@ typedef struct ENFA{
 ## Known Bugs / Limitations
 
 - `MaxStates` is a compile-time constant — very large NFAs may exceed it
-- No support for escape characters in regex (e.g. `\*` to match literal `*`)
 - Regex syntax errors are not caught — undefined behavior on malformed input
 - Memory is never freed — `make_dfa` and `make_enfa` malloc but there is no `free_dfa` / `free_enfa`
 - Escape sequence recognition is inconsistent — `find_alphabet` correctly handles `\x` sequences when scanning for alphabet symbols, but `complete_regex` advances past the escaped character without resetting `prev_was_operand`, which can cause the implicit concatenation dot to be inserted in the wrong place
-- Sequences like `(a)(a)*` are mishandled — `complete_regex` does not set `prev_was_operand = 1` after a closing `)`, so the implicit `.` between the two groups is never inserted, causing `infix_to_postfix` to produce a malformed postfix expression
+- Sequences like `(a)(a)*` are mishandled 
 
 ---
 
@@ -176,7 +177,7 @@ typedef struct ENFA{
 - `__builtin_popcountll()` for counting states in a set instead of maintaining `count` manually
 - `union_sets()` function for merging two `set_of_states` with a single word-by-word OR loop
 - Hopcroft's algorithm for minimization — O(n log n) vs current O(n²) table filling
-- Hashmap for `get_set_index` and `in_set` — currently O(n) linear scan
+- Hashmap for `get_set_index`  — currently O(n) linear scan
 
 ### Code Quality
 - Adding `const` keyword to read-only function parameters
@@ -186,7 +187,6 @@ typedef struct ENFA{
 ### Features
 - Support for more regex operators — `+` (one or more), `?` (zero or one), character classes `[a-z]`
 - Escape characters in regex
-- Lexical analyzer built on top of this engine ✓
 
 ---
 
