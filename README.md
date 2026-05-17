@@ -13,13 +13,15 @@ project/
 │   ├── utils.h       -- shared structs and utility functions
 │   ├── dfa.h         -- DFA struct and operations
 │   ├── enfa.h        -- Epsilon-NFA struct and operations
-│   └── regex.h       -- regex to ENFA conversion (Thompson's construction)
+│   ├── regex.h       -- regex to ENFA conversion (Thompson's construction)
+│   └── lexer.h       -- lexer structs and interface
 └── src/
     ├── utils.c
     ├── dfa.c
     ├── enfa.c
     ├── regex.c
-    └── main.c
+    ├── lexer.c
+    └── lex_analysis.c   -- entry point for the lexer
 ```
 
 ---
@@ -55,6 +57,66 @@ Supported regex operators:
 - Takes the minimized DFA and an input string
 - Steps through the transition table character by character
 - Returns accept or reject
+
+### 5. Lexer
+The lexer is built on top of the regex engine and turns a source file into a stream of tokens. It has three stages:
+
+**`load_language(lexer, filename)`** — reads a `.def` file that defines the token rules. Each line contains a token name and a regex pattern. Rules are processed top to bottom, so rules listed earlier have higher priority — this lets keywords take precedence over identifiers when both patterns would match. For each rule, `regex_to_dfa` is called to compile the pattern to a minimized DFA, which is stored in the lexer.
+
+**`next_token(lexer, input, pos)`** — runs all compiled DFAs in parallel on the input starting at `pos`. It advances one character at a time, feeding each character to every live DFA. Whenever a DFA reaches a final state, the current position is recorded as a candidate match. When all DFAs have died, the longest match found is returned as a token. If two rules match at the same length, the earlier rule wins (enforcing keyword priority). If no rule matched at all, an `UNKNOWN` token is emitted for the current character and the position advances by one.
+
+**`lex_file(lexer, filename)`** — reads the entire source file into a buffer, then repeatedly calls `next_token`, skipping whitespace between tokens, and prints each token as `NAME : value`.
+
+The lexer entry point is `lex_analysis.c`, which takes two command-line arguments — a language definition file and a source file to tokenize:
+```
+./lexer lang.def source.c
+```
+
+---
+
+## Defining a Language (`lang.def`)
+
+The lexer is configured by a plain-text language definition file. Each line defines one token rule as a name and a regex pattern separated by whitespace. Lines starting with `#` are treated as comments and ignored.
+
+```
+# this is a comment
+TOKEN_NAME   regex
+```
+
+**Rule priority** is determined by order — rules listed earlier match first when two patterns tie on length. Always put keywords before the general identifier rule so that `int` is recognized as `KEYWORD_INT` and not `IDENT`.
+
+**Regex patterns** use the same operators supported by the engine: `|` for union, `*` for kleene closure, `()` for grouping, and `\` to escape special characters. Literal `(`, `)`, `+`, `*`, `|` must be escaped with a backslash when you want them to match as characters.
+
+A minimal C-like language definition looks like this:
+
+```
+# keywords — must come before IDENT
+KEYWORD_INT     int
+KEYWORD_IF      if
+KEYWORD_RETURN  return
+
+# identifiers — letter or underscore, followed by any alphanumeric/underscore
+IDENT   (a|b|...|z|A|...|Z|_)((a|b|...|z|A|...|Z|_|0|...|9)*)
+
+# integer literals
+INTEGER (1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)*|0
+
+# multi-character operators before single-character ones
+EQUAL_EQUAL ==
+EQUALS      =
+
+# escaped special characters
+OR          \|\|
+LPAREN      \(
+RPAREN      \)
+```
+
+A few things to keep in mind:
+
+- **Longest match wins.** `next_token` always returns the longest token it can, so `==` will correctly match `EQUAL_EQUAL` rather than two `EQUALS` tokens.
+- **Equal-length ties go to the earlier rule.** This is how keyword priority over `IDENT` is enforced.
+- **Operators that are also regex metacharacters must be escaped.** Characters like `(`, `)`, `|`, `*`, `+` need a leading `\` in the pattern when you want the lexer to match them literally.
+- **Whitespace is skipped between tokens** by `lex_file` — there is no need to define a whitespace rule.
 
 ---
 
@@ -101,6 +163,8 @@ typedef struct ENFA{
 - No support for escape characters in regex (e.g. `\*` to match literal `*`)
 - Regex syntax errors are not caught — undefined behavior on malformed input
 - Memory is never freed — `make_dfa` and `make_enfa` malloc but there is no `free_dfa` / `free_enfa`
+- Escape sequence recognition is inconsistent — `find_alphabet` correctly handles `\x` sequences when scanning for alphabet symbols, but `complete_regex` advances past the escaped character without resetting `prev_was_operand`, which can cause the implicit concatenation dot to be inserted in the wrong place
+- Sequences like `(a)(a)*` are mishandled — `complete_regex` does not set `prev_was_operand = 1` after a closing `)`, so the implicit `.` between the two groups is never inserted, causing `infix_to_postfix` to produce a malformed postfix expression
 
 ---
 
@@ -122,7 +186,7 @@ typedef struct ENFA{
 ### Features
 - Support for more regex operators — `+` (one or more), `?` (zero or one), character classes `[a-z]`
 - Escape characters in regex
-- Lexical analyzer built on top of this engine
+- Lexical analyzer built on top of this engine ✓
 
 ---
 
